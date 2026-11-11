@@ -11,6 +11,11 @@ One row per decision. Never edit an old row; add a new one that supersedes it.
 | D-005 | 2026-11-11 | The citizen prototype (step 0.5) is an Expo / React Native app in `mobile/`, tested on phones with Expo Go. The dashboard stays HTML. Supersedes D-003 for the citizen side. | Juan has Expo Go; user tests need the real camera and GPS. | Juan | Active |
 | D-006 | 2026-11-11 | Open decision 4 leans to React Native + Expo for Phase 1. Not final. | Prototype code carries over. **Caveat:** an on-device model (TFLite) cannot run inside Expo Go; Phase 1 will need an Expo development build, and that must be proven before the framework is fixed. | Proposed by Claude — **Juan to confirm at start of Phase 1** | Proposed |
 | D-007 | 2026-11-11 | The phone prototype has a language button: English (default) and Spanish. The Phase 1 scope ("Spanish UI") is unchanged. | Juan needs English to try and show the prototype; household tests in Peru need Spanish. | Juan | Active |
+| D-008 | 2026-11-11 | **Concept change:** the app is a live scanner that recognizes plastic in real time. The user only looks; counts are collected automatically, with no send step. Supersedes the photo → confirm → send flow as the main interaction. | Juan's product intent. | Juan | Active |
+| D-009 | 2026-11-11 | A separate "report a dump point" button stays, for asking the municipality to clean a specific spot. | Keeps the cleanup value for municipalities without mixing it into automatic collection. | Juan | Active |
+| D-010 | 2026-11-11 | No stand-in scanner with a generic model. The real plastic model comes first: new step 0.10 in Phase 0. | Juan's choice. A generic model knows bottles and cups but not bags, wrappers or tecnopor. | Juan | Active |
+| D-011 | 2026-11-11 | "Recognizes plastic" is implemented as recognizing plastic item types vs. non-plastic items, not material from appearance. | The project's research found material-from-image unreliable. | Proposed by Claude — **Juan to confirm** | Proposed |
+| D-012 | 2026-11-11 | Automatic counts carry district-level location only, until open decision 8 is settled. Governance draft and impact assessment must be revised for automatic collection before any pilot. | Automatic collection is more sensitive than a report the user chooses to send. | Proposed by Claude — **Juan to confirm** | Proposed |
 
 ## Open decisions (mirror of PLAN.md §11)
 
@@ -23,3 +28,5 @@ One row per decision. Never edit an old row; add a new one that supersedes it.
 | 5 | Impact measurement method | Phase 1 | — |
 | 6 | Minimum active users for a reliable map | Phase 2 | — |
 | 7 | How formal waste pickers receive information | Phase 3 | — |
+| 8 | Location precision of automatic counts | Phase 0 | District only for now (D-012) |
+| 9 | Final list of plastic item classes | Phase 0 | After step 0.10 |
