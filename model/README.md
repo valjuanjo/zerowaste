@@ -22,7 +22,7 @@ python model/prepare_taco.py work
 ```
 
 ```bash
-python model/train.py work 40 640
+python model/train.py work 35 640
 ```
 
 ```bash
@@ -34,7 +34,7 @@ are not committed.
 
 ## Results
 
-See `results/`. Each report lists how many objects were found, how many got the right item type, and how many
+See [`results/README.md`](results/README.md) for the round 1 verdict (not good enough yet). Each report lists how many objects were found, how many got the right item type, and how many
 got the right plastic / not-plastic answer.
 
 ## Limits to keep in mind

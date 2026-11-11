@@ -61,7 +61,7 @@ is the main technical risk and is measured in step 0.10 before anything else is 
 | **0.7 Legal** | Start a data protection impact assessment (Law 29733 / DS 016-2024-JUS) and an AI-risk note (DS 115-2025-PCM). Consult a data protection lawyer once. | ◐ [Impact assessment](docs/legal/dpia-draft.md) and [AI-risk note](docs/legal/ai-risk-note.md) started, with the questions for the lawyer. Lawyer not consulted; legal content unverified. |
 | **0.8 Funding** | Identify a seed source (Startup Perú / ProInnóvate, university research funds, cooperation agencies, NGO partners). | ◐ [Shortlist](docs/funding.md). No call or eligibility verified. |
 | **0.9 Data** | Begin building a local photo dataset of Peruvian litter and packaging (with consent; no people in frame). **Now on the critical path:** the first 50 photos per class are the local test set for step 0.10. | ◐ [Protocol, label set, consent text, metadata file](dataset/README.md). 0 photos. |
-| **0.10 Plastic model baseline** | Train a small object-detection model on the public TACO litter set, grouped into plastic item types vs. non-plastic. Measure it on held-out TACO photos, then on the local test set from 0.9. Record the numbers and decide: good enough to continue, needs more data, or change approach. Then export it for phones and prove it runs live in a custom Android build. | ☐ Not started. |
+| **0.10 Plastic model baseline** | Train a small object-detection model on the public TACO litter set, grouped into plastic item types vs. non-plastic. Measure it on held-out TACO photos, then on the local test set from 0.9. Record the numbers and decide: good enough to continue, needs more data, or change approach. Then export it for phones and prove it runs live in a custom Android build. | ◐ **Round 1 done, result: not good enough** ([results](model/results/README.md), D-013). On 666 held-out TACO objects the model finds 36%; 21% found with the right item type; 28% found with the right plastic / not-plastic answer. **Round 2 (plan change):** fewer classes (drop or merge the ones that failed), larger image size for small items, longer training on a GPU, more public data. Local photos: 0, not measured. Phone export and live Android build: not started. |
 
 ### 3.2 Exit criteria
 - [ ] 10 household + 2 municipal interviews done and synthesized — *0 of 12*
@@ -235,6 +235,6 @@ Scanner counts: one count per object, not per frame; cap on counts per device pe
 | 4. Home (inventory + forecast) | ☐ Not started |
 | 5. Scale | ☐ Not started |
 
-**Current step:** 0.10 — train and measure the baseline plastic model (can start now, on public data). In parallel, Juan: 0.1 verify districts, 0.2 send outreach, 0.9 take the first local photos.
+**Current step:** 0.10 round 2 — the first baseline was measured and is not good enough (D-013); improve it before building the scanner. Needs a decision from Juan on GPU access and the class list (open decision 9). In parallel, Juan: 0.1 verify districts, 0.2 send outreach, 0.9 take the first local photos.
 
 **Phase 1 has not been started:** none of the six Phase 0 exit criteria is met yet (decision D-004).

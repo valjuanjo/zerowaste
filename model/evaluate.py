@@ -23,11 +23,15 @@ split = sys.argv[4] if len(sys.argv) > 4 else "test"
 imgsz = int(sys.argv[5]) if len(sys.argv) > 5 else 640
 out.mkdir(parents=True, exist_ok=True)
 
-m = YOLO(weights).val(data=str(work / "data.yaml"), split=split, imgsz=imgsz, device="cpu",
-                      plots=False, project=str(work / "runs"), name=f"eval-{split}", exist_ok=True)
+common = dict(data=str(work / "data.yaml"), split=split, imgsz=imgsz, device="cpu",
+              project=str(work / "runs"), exist_ok=True)
+# Two passes: the standard one for the mAP scores, and one at the confidence the app would use (0.25) for the
+# counts. The library only fills the confusion matrix when plots are on, and at the confidence it was given.
+m = YOLO(weights).val(plots=False, name=f"eval-{split}", **common)
+counts = YOLO(weights).val(plots=True, conf=0.25, name=f"eval-{split}-conf25", **common)
 
 nc = len(NAMES)
-cm = np.asarray(m.confusion_matrix.matrix)  # rows = predicted, cols = true; last index = background
+cm = np.asarray(counts.confusion_matrix.matrix)  # rows = predicted, cols = true; last index = background
 assert cm.shape == (nc + 1, nc + 1), cm.shape
 plastic = np.array(IS_PLASTIC)
 

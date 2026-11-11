@@ -16,6 +16,7 @@ One row per decision. Never edit an old row; add a new one that supersedes it.
 | D-010 | 2026-11-11 | No stand-in scanner with a generic model. The real plastic model comes first: new step 0.10 in Phase 0. | Juan's choice. A generic model knows bottles and cups but not bags, wrappers or tecnopor. | Juan | Active |
 | D-011 | 2026-11-11 | "Recognizes plastic" is implemented as recognizing plastic item types vs. non-plastic items, not material from appearance. | The project's research found material-from-image unreliable. | Proposed by Claude — **Juan to confirm** | Proposed |
 | D-012 | 2026-11-11 | Automatic counts carry district-level location only, until open decision 8 is settled. Governance draft and impact assessment must be revised for automatic collection before any pilot. | Automatic collection is more sensitive than a report the user chooses to send. | Proposed by Claude — **Juan to confirm** | Proposed |
+| D-013 | 2026-11-11 | Step 0.10 round 1: the first baseline (YOLOv8-nano, 35 epochs, 640 px, CPU, TACO only) is **not good enough** to build the scanner on. No go / no-go on the approach yet; a second round comes first, and the local-photo measurement is still owed. | Held-out TACO photos: 36% of objects found, 21% with the right item type, 28% with the right plastic / not-plastic answer, 155 false alarms. Small items (cigarette butts, straws) are almost never found. See `model/results/`. | Measured result; next round proposed by Claude — **Juan to confirm** | Active |
 
 ## Open decisions (mirror of PLAN.md §11)
 
@@ -29,4 +30,4 @@ One row per decision. Never edit an old row; add a new one that supersedes it.
 | 6 | Minimum active users for a reliable map | Phase 2 | — |
 | 7 | How formal waste pickers receive information | Phase 3 | — |
 | 8 | Location precision of automatic counts | Phase 0 | District only for now (D-012) |
-| 9 | Final list of plastic item classes | Phase 0 | After step 0.10 |
+| 9 | Final list of plastic item classes | Phase 0 | Round 1 (D-013): bottle, bag / film, metal work best; cigarette butt, straw, other plastic, glass fail. Proposal for round 2 pending. |
