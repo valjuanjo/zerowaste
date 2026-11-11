@@ -4,7 +4,22 @@
 Framework: Law 29733 and its regulation DS 016-2024-JUS. Article references are deliberately left out —
 the lawyer fills them in.
 
-## 1. Description of processing (Street mode, Phases 1–2)
+## 0. Revision note — live scanner (2026-11-11)
+
+The concept changed (decisions D-008, D-009): the main interaction is a live scanner whose counts are
+**collected automatically**; the photo report below remains only as the separate "report a dump point" button.
+Sections 1–5 describe the report button. The scanner adds the following, to be assessed with the lawyer:
+
+| Topic | Scanner (automatic counts) |
+|---|---|
+| Data | Item type, plastic yes/no, confidence, timestamp, district, anonymous device ID in transit. **No image, no exact location.** |
+| Main new risk | Collection without a deliberate act by the user. Consent must be informed, given before the camera starts, and withdrawable (pause switch). |
+| Home use | The same scanner is used at home; counts at district level could still describe a household's consumption if linked to a device. Counts must be unlinkable to a device once aggregated. |
+| Bystanders | Camera frames are processed on the phone and discarded; nothing about people is stored. |
+| Children | Same question as R6. |
+| Questions for lawyer | Is opt-in at first open sufficient for continuous automatic collection by a public body? Must the user be able to see and delete their own counts? |
+
+## 1. Description of processing (dump-point report button)
 
 | Item | Description |
 |---|---|
