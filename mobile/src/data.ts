@@ -1,22 +1,18 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+// Display names live in i18n.ts.
 export const TYPES = {
-  bottle: { es: 'Botella', icon: '🧴' },
-  bag: { es: 'Bolsa', icon: '🛍️' },
-  cup: { es: 'Vaso', icon: '🥤' },
-  tecnopor: { es: 'Tecnopor', icon: '📦' },
-  cigarette_butt: { es: 'Colilla', icon: '🚬' },
-  mixed_pile: { es: 'Montículo mixto', icon: '🗑️' },
+  bottle: { icon: '🧴' },
+  bag: { icon: '🛍️' },
+  cup: { icon: '🥤' },
+  tecnopor: { icon: '📦' },
+  cigarette_butt: { icon: '🚬' },
+  mixed_pile: { icon: '🗑️' },
 } as const;
 export type ObjectType = keyof typeof TYPES;
 
 export const STATUS_ORDER = ['received', 'scheduled', 'cleaned'] as const;
 export type Status = (typeof STATUS_ORDER)[number];
-export const STATUS_ES: Record<Status, string> = {
-  received: 'Recibido',
-  scheduled: 'Programado',
-  cleaned: 'Limpiado',
-};
 
 // Same fields as the plan's data model (§4.3), minus what a prototype cannot know.
 export type Report = {
@@ -25,7 +21,7 @@ export type Report = {
   object_type: ObjectType;
   photoUri: string | null;
   geo: { lat: number; lon: number } | null;
-  place: string;
+  place: string | null; // null when location was refused or unavailable
   timestamp: string;
   status: Status;
 };

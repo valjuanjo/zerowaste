@@ -10,6 +10,7 @@ One row per decision. Never edit an old row; add a new one that supersedes it.
 | D-004 | 2026-11-11 | Phase 1 is not started until the Phase 0 exit criteria are met. | The plan's own rule. The criteria need real people (interviews, letter of intent, partner agreement, user tests). | Plan rule | Active |
 | D-005 | 2026-11-11 | The citizen prototype (step 0.5) is an Expo / React Native app in `mobile/`, tested on phones with Expo Go. The dashboard stays HTML. Supersedes D-003 for the citizen side. | Juan has Expo Go; user tests need the real camera and GPS. | Juan | Active |
 | D-006 | 2026-11-11 | Open decision 4 leans to React Native + Expo for Phase 1. Not final. | Prototype code carries over. **Caveat:** an on-device model (TFLite) cannot run inside Expo Go; Phase 1 will need an Expo development build, and that must be proven before the framework is fixed. | Proposed by Claude — **Juan to confirm at start of Phase 1** | Proposed |
+| D-007 | 2026-11-11 | The phone prototype has a language button: English (default) and Spanish. The Phase 1 scope ("Spanish UI") is unchanged. | Juan needs English to try and show the prototype; household tests in Peru need Spanish. | Juan | Active |
 
 ## Open decisions (mirror of PLAN.md §11)
 

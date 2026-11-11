@@ -3,9 +3,8 @@ import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, View
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { Capture, locate, takePhoto } from './src/capture';
-import {
-  ObjectType, Report, STATUS_ES, STATUS_ORDER, TYPES, formatWhen, loadReports, saveReports,
-} from './src/data';
+import { ObjectType, Report, STATUS_ORDER, TYPES, formatWhen, loadReports, saveReports } from './src/data';
+import { Lang, STRINGS, loadLang, saveLang } from './src/i18n';
 
 type Screen = 'home' | 'confirm' | 'sent' | 'list';
 const GREEN = '#1f7a4d';
@@ -16,8 +15,15 @@ export default function App() {
   const [draft, setDraft] = useState<Capture | null>(null);
   const [type, setType] = useState<ObjectType | null>(null);
   const [busy, setBusy] = useState(false);
+  const [lang, setLang] = useState<Lang>('en');
+  const t = STRINGS[lang];
 
-  useEffect(() => { loadReports().then(setReports); }, []);
+  useEffect(() => { loadReports().then(setReports); loadLang().then(setLang); }, []);
+
+  function toggleLang() {
+    const next: Lang = lang === 'en' ? 'es' : 'en';
+    setLang(next); saveLang(next);
+  }
 
   const persist = (next: Report[]) => { setReports(next); saveReports(next); };
 
@@ -57,55 +63,52 @@ export default function App() {
         <View style={s.header}>
           <View>
             <Text style={s.title}>Escanea Perú</Text>
-            <Text style={s.subtitle}>Prototipo de prueba · Municipalidad de [distrito]</Text>
+            <Text style={s.subtitle}>{t.subtitle}</Text>
           </View>
-          <Text style={{ fontSize: 26 }}>♻️</Text>
+          <Pressable testID="lang-toggle" accessibilityLabel="Change language / Cambiar idioma" onPress={toggleLang} style={s.lang}>
+            <Text style={s.langText}>🌐 {t.switchTo}</Text>
+          </Pressable>
         </View>
 
         <ScrollView style={{ flex: 1 }} contentContainerStyle={s.body}>
           {screen === 'home' && (
             <View style={s.center}>
-              <Text style={s.h2}>¿Ves basura en la calle?</Text>
-              <Text style={s.muted}>
-                Toma una foto. La municipalidad la recibe con la ubicación y te avisa cuando esté limpio.
-              </Text>
-              <Pressable testID="btn-cam" accessibilityLabel="Tomar foto" onPress={onCamera}
+              <Text style={s.h2}>{t.homeTitle}</Text>
+              <Text style={[s.muted, s.centerText]}>{t.homeBody}</Text>
+              <Pressable testID="btn-cam" accessibilityLabel={t.takePhoto} onPress={onCamera}
                 style={({ pressed }) => [s.cam, pressed && { opacity: 0.8 }]}>
                 {busy ? <ActivityIndicator color="#fff" size="large" /> : <Text style={s.camIcon}>📷</Text>}
-                <Text style={s.camText}>{busy ? 'Un momento…' : 'Tomar foto'}</Text>
+                <Text style={s.camText}>{busy ? t.wait : t.takePhoto}</Text>
               </Pressable>
-              <Text style={s.muted}>No pedimos tu nombre ni tu número.</Text>
+              <Text style={[s.muted, s.centerText]}>{t.noName}</Text>
             </View>
           )}
 
           {screen === 'confirm' && draft && (
             <View>
-              <Text style={s.h2}>¿Qué es?</Text>
+              <Text style={s.h2}>{t.confirmTitle}</Text>
               {draft.photoUri
                 ? <Image source={{ uri: draft.photoUri }} style={s.photo} />
-                : <View style={[s.photo, s.noPhoto]}><Text style={s.muted}>Sin foto (cámara no permitida)</Text></View>}
-              <Text style={[s.muted, { marginTop: 8 }]}>
-                En la app final, el teléfono sugerirá el tipo y difuminará rostros y placas.
-                En este prototipo eliges tú, y la foto no sale de tu teléfono.
-              </Text>
+                : <View style={[s.photo, s.noPhoto]}><Text style={s.muted}>{t.noPhoto}</Text></View>}
+              <Text style={[s.muted, { marginTop: 8 }]}>{t.protoNote}</Text>
               <View style={s.chips}>
                 {(Object.keys(TYPES) as ObjectType[]).map((k) => (
                   <Pressable key={k} testID={`chip-${k}`} onPress={() => setType(k)}
                     style={[s.chip, type === k && s.chipSel]}>
-                    <Text style={[s.chipText, type === k && { fontWeight: '700' }]}>{TYPES[k].icon} {TYPES[k].es}</Text>
+                    <Text style={[s.chipText, type === k && { fontWeight: '700' }]}>{TYPES[k].icon} {t.types[k]}</Text>
                   </Pressable>
                 ))}
               </View>
               <View style={s.note}>
-                <Text testID="place">📍 {draft.place}</Text>
+                <Text testID="place">📍 {draft.place ?? t.noLocation}</Text>
                 <Text>🕒 {formatWhen(draft.timestamp)}</Text>
               </View>
               <Pressable testID="btn-send" disabled={!type} onPress={onSend}
                 style={[s.btn, s.btnPrimary, !type && { opacity: 0.4 }]}>
-                <Text style={s.btnPrimaryText}>{type ? 'Enviar reporte' : 'Elige el tipo para enviar'}</Text>
+                <Text style={s.btnPrimaryText}>{type ? t.send : t.pickFirst}</Text>
               </Pressable>
               <Pressable onPress={() => setScreen('home')} style={[s.btn, s.btnGhost]}>
-                <Text style={s.btnGhostText}>Cancelar</Text>
+                <Text style={s.btnGhostText}>{t.cancel}</Text>
               </Pressable>
             </View>
           )}
@@ -113,23 +116,21 @@ export default function App() {
           {screen === 'sent' && (
             <View style={s.center}>
               <Text style={{ fontSize: 64 }}>✅</Text>
-              <Text style={s.h2}>Reporte enviado</Text>
-              <Text style={s.muted}>
-                La municipalidad lo recibió. Puedes ver cuándo lo programan y cuándo lo limpian.
-              </Text>
+              <Text style={s.h2}>{t.sentTitle}</Text>
+              <Text style={[s.muted, s.centerText]}>{t.sentBody}</Text>
               <Pressable testID="btn-see" onPress={() => setScreen('list')} style={[s.btn, s.btnPrimary, s.wide]}>
-                <Text style={s.btnPrimaryText}>Ver mis reportes</Text>
+                <Text style={s.btnPrimaryText}>{t.seeReports}</Text>
               </Pressable>
               <Pressable onPress={() => setScreen('home')} style={[s.btn, s.btnGhost, s.wide]}>
-                <Text style={s.btnGhostText}>Reportar otro</Text>
+                <Text style={s.btnGhostText}>{t.another}</Text>
               </Pressable>
             </View>
           )}
 
           {screen === 'list' && (
             <View>
-              <Text style={s.h2}>Mis reportes</Text>
-              {reports.length === 0 && <Text style={s.muted}>Todavía no has enviado reportes.</Text>}
+              <Text style={s.h2}>{t.listTitle}</Text>
+              {reports.length === 0 && <Text style={s.muted}>{t.empty}</Text>}
               {[...reports].reverse().map((r) => {
                 const at = STATUS_ORDER.indexOf(r.status);
                 return (
@@ -137,15 +138,15 @@ export default function App() {
                     <View style={s.row}>
                       {r.photoUri && <Image source={{ uri: r.photoUri }} style={s.thumb} />}
                       <View style={{ flex: 1 }}>
-                        <Text style={s.cardTitle}>{TYPES[r.object_type].icon} {TYPES[r.object_type].es}  #{r.id}</Text>
-                        <Text style={s.muted}>📍 {r.place}</Text>
+                        <Text style={s.cardTitle}>{TYPES[r.object_type].icon} {t.types[r.object_type]}  #{r.id}</Text>
+                        <Text style={s.muted}>📍 {r.place ?? t.noLocation}</Text>
                         <Text style={s.muted}>🕒 {formatWhen(r.timestamp)}</Text>
                       </View>
                     </View>
                     <View style={s.steps}>
                       {STATUS_ORDER.map((st, i) => (
                         <View key={st} testID={i <= at ? `done-${r.id}` : undefined} style={[s.step, i <= at && s.stepDone]}>
-                          <Text style={[s.stepText, i <= at && s.stepTextDone]}>{STATUS_ES[st]}</Text>
+                          <Text style={[s.stepText, i <= at && s.stepTextDone]}>{t.status[st]}</Text>
                         </View>
                       ))}
                     </View>
@@ -153,9 +154,7 @@ export default function App() {
                 );
               })}
               {reports.length > 0 && (
-                <Text style={[s.muted, { fontSize: 12 }]}>
-                  Para quien conduce la prueba: mantén presionado un reporte para simular el avance de la municipalidad.
-                </Text>
+                <Text style={[s.muted, { fontSize: 12 }]}>{t.facilitator}</Text>
               )}
             </View>
           )}
@@ -164,11 +163,11 @@ export default function App() {
         <View style={s.nav}>
           <Pressable testID="nav-home" style={s.navBtn} onPress={() => setScreen('home')}>
             <Text style={s.navIcon}>📷</Text>
-            <Text style={[s.navText, screen !== 'list' && s.navOn]}>Reportar</Text>
+            <Text style={[s.navText, screen !== 'list' && s.navOn]}>{t.navReport}</Text>
           </Pressable>
           <Pressable testID="nav-list" style={s.navBtn} onPress={() => setScreen('list')}>
             <Text style={s.navIcon}>📋</Text>
-            <Text style={[s.navText, screen === 'list' && s.navOn]}>Mis reportes</Text>
+            <Text style={[s.navText, screen === 'list' && s.navOn]}>{t.navList}</Text>
           </Pressable>
         </View>
       </SafeAreaView>
@@ -181,6 +180,9 @@ const s = StyleSheet.create({
   header: { backgroundColor: GREEN, paddingHorizontal: 16, paddingVertical: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   title: { color: '#fff', fontSize: 19, fontWeight: '700' },
   subtitle: { color: '#d7eadf', fontSize: 12 },
+  lang: { backgroundColor: '#fff', borderRadius: 18, paddingHorizontal: 12, paddingVertical: 8 },
+  langText: { color: GREEN, fontWeight: '700', fontSize: 14 },
+  centerText: { textAlign: 'center' },
   body: { flexGrow: 1, padding: 16, backgroundColor: '#f3f5f1' },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 14 },
   h2: { fontSize: 22, fontWeight: '700', color: '#1c2420', marginBottom: 8 },

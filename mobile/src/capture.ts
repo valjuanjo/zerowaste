@@ -4,7 +4,7 @@ import * as Location from 'expo-location';
 export type Capture = {
   photoUri: string | null;
   geo: { lat: number; lon: number } | null;
-  place: string;
+  place: string | null;
   timestamp: string;
 };
 
@@ -21,10 +21,10 @@ export async function takePhoto(): Promise<{ photoUri: string | null } | null> {
 export async function locate(): Promise<Pick<Capture, 'geo' | 'place'>> {
   try {
     const perm = await Location.requestForegroundPermissionsAsync();
-    if (!perm.granted) return { geo: null, place: 'Ubicación no compartida' };
+    if (!perm.granted) return { geo: null, place: null };
     const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
     const geo = { lat: pos.coords.latitude, lon: pos.coords.longitude };
-    let place = `${geo.lat.toFixed(5)}, ${geo.lon.toFixed(5)}`;
+    let place: string = `${geo.lat.toFixed(5)}, ${geo.lon.toFixed(5)}`;
     try {
       const [a] = await Location.reverseGeocodeAsync({ latitude: geo.lat, longitude: geo.lon });
       const parts = [[a?.street, a?.streetNumber].filter(Boolean).join(' '), a?.district || a?.city].filter(Boolean);
@@ -34,6 +34,6 @@ export async function locate(): Promise<Pick<Capture, 'geo' | 'place'>> {
     }
     return { geo, place };
   } catch {
-    return { geo: null, place: 'Ubicación no disponible' };
+    return { geo: null, place: null };
   }
 }

@@ -1,6 +1,8 @@
 # Escanea Perú — phone prototype (Expo)
 
 Citizen Street flow for plan step 0.5, runnable on a real phone with **Expo Go**:
+English or Spanish (🌐 button in the header; English by default, the choice is remembered).
+
 camera button → real photo → real GPS location → choose litter type → send → "Mis reportes" with status.
 
 ## What is real and what is simulated

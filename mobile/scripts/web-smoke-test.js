@@ -43,7 +43,11 @@ const server = http.createServer((req, res) => {
   await id('btn-send').click();
   await id('btn-see').click();
   await id('card-101').waitFor();
+  assert.match(await id('card-101').textContent(), /Styrofoam/); // English by default
+  assert.match(await page.textContent('body'), /My reports/);
+  await id('lang-toggle').click(); // switch to Spanish
   assert.match(await id('card-101').textContent(), /Tecnopor/);
+  assert.match(await page.textContent('body'), /Mis reportes/);
   assert.strictEqual(await id('done-101').count(), 1);
 
   // Facilitator long-press advances the status.
@@ -54,11 +58,12 @@ const server = http.createServer((req, res) => {
     assert.strictEqual(await id('done-101').count(), expected);
   }
 
-  // Reports survive a restart of the app.
+  // Reports and the chosen language survive a restart of the app.
   await page.reload();
   await id('nav-list').click();
   await id('card-101').waitFor();
   assert.strictEqual(await id('done-101').count(), 3);
+  assert.match(await id('card-101').textContent(), /Tecnopor/);
 
   const over = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   assert.ok(over <= 0, `horizontal overflow ${over}px`);
