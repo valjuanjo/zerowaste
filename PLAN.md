@@ -48,7 +48,7 @@ One free app, provided by government, with **one camera button** and **two conte
 | **0.2 Partners** | Contact UNMSM / UTP about acting as **independent data trustee** and source of student developers/researchers. Request meetings with 3–5 district environmental managers (gerencias de medio ambiente / gestión de residuos). | ◐ [Messages drafted + contact tracker](docs/partners/outreach-es.md). Nothing sent. |
 | **0.3 Household interviews** | ~10 interviews. Test the key questions: *Would you scan at home with a government app? What would make you trust it? Would you report street litter?* | ☐ 0 of 10. Guide and [synthesis sheet](docs/interviews/synthesis-template.md) ready. |
 | **0.4 Municipal interviews** | Meet 1–2 officers. Ask: what data they report for the incentive program, how cleanup crews are dispatched, what they would pay or co-fund. Synthesize findings; update the value proposition canvas. | ☐ 0 of 2. Guide ready. |
-| **0.5 Prototype** | Clickable prototype (**HTML, in `prototype/`** — changed from Figma, see decision D-003) of Street flow + municipal dashboard; test with 5 users and 1 officer. | ◐ [Prototype](prototype/) built; automated end-to-end check passes. 0 of 5 users, 0 of 1 officer. |
+| **0.5 Prototype** | Working prototype instead of Figma (decisions D-003, D-005): **citizen Street flow as an Expo app in `mobile/`**, run on a real phone with Expo Go; **municipal dashboard as HTML in `prototype/`**. Test with 5 users and 1 officer. | ◐ [Phone app](mobile/) and [dashboard](prototype/) built; automated checks pass in a browser. **Not yet run on a phone.** 0 of 5 users, 0 of 1 officer. |
 | **0.6 Governance** | Draft who operates the app, who holds data, what the government sees (see §7). | ◐ [Drafted](docs/governance.md). Not agreed with any institution. |
 | **0.7 Legal** | Start a data protection impact assessment (Law 29733 / DS 016-2024-JUS) and an AI-risk note (DS 115-2025-PCM). Consult a data protection lawyer once. | ◐ [Impact assessment](docs/legal/dpia-draft.md) and [AI-risk note](docs/legal/ai-risk-note.md) started, with the questions for the lawyer. Lawyer not consulted; legal content unverified. |
 | **0.8 Funding** | Identify a seed source (Startup Perú / ProInnóvate, university research funds, cooperation agencies, NGO partners). | ◐ [Shortlist](docs/funding.md). No call or eligibility verified. |
@@ -202,7 +202,7 @@ Photo + GPS + timestamp must agree; duplicate detection within a radius; rate li
 | 1 | Pilot district | Phase 0 |
 | 2 | Operator (municipality / university / NGO) | Phase 0 |
 | 3 | Data trustee and what government sees | Phase 0 |
-| 4 | Mobile framework and cloud provider | Start of Phase 1 |
+| 4 | Mobile framework and cloud provider — *framework leaning React Native + Expo (D-005); cloud provider open* | Start of Phase 1 |
 | 5 | Impact measurement method (before/after) | Phase 1 |
 | 6 | Minimum active users for a reliable district map | Phase 2 |
 | 7 | How formal waste pickers receive information | Phase 3 |

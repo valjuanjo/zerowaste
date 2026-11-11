@@ -13,7 +13,8 @@ The plan and its progress live in [`PLAN.md`](PLAN.md). Phases advance on exit c
 | `docs/candidate-districts.md` | Candidate pilot districts + scoring | 0.1 |
 | `docs/interviews/` | Interview guides, synthesis template | 0.1, 0.3, 0.4 |
 | `docs/partners/` | Outreach drafts and contact tracker | 0.2 |
-| `prototype/` | Clickable prototype: citizen Street flow + municipal dashboard | 0.5 |
+| `mobile/` | Phone prototype of the citizen Street flow (Expo — run with Expo Go, see `mobile/README.md`) | 0.5 |
+| `prototype/` | HTML prototype: municipal dashboard, plus a browser version of the citizen flow | 0.5 |
 | `docs/governance.md` | Operator / trustee / what government sees | 0.6 |
 | `docs/legal/` | Data protection impact assessment draft, AI-risk note | 0.7 |
 | `docs/funding.md` | Seed funding shortlist | 0.8 |
