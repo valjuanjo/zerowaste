@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Escanea Perú — prototipo vecino</title>
+<style>
+  :root { --green:#1f7a4d; --green-d:#155c39; --bg:#f3f5f1; --ink:#1c2420; --muted:#64706a; --line:#dde3dc; --amber:#b86e00; --blue:#1d5fa8; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background:#d9ded6; color:var(--ink); }
+  .phone { max-width:420px; min-height:100vh; margin:0 auto; background:var(--bg); display:flex; flex-direction:column; }
+  header { background:var(--green); color:#fff; padding:14px 16px; display:flex; align-items:center; justify-content:space-between; }
+  header h1 { font-size:18px; margin:0; }
+  header small { opacity:.85; font-size:12px; }
+  main { flex:1; padding:16px; display:flex; flex-direction:column; }
+  .screen { display:none; flex:1; flex-direction:column; }
+  .screen.on { display:flex; }
+  h2 { font-size:20px; margin:4px 0 12px; }
+  p { line-height:1.45; }
+  .muted { color:var(--muted); font-size:14px; }
+  .cam { margin:auto; width:190px; height:190px; border-radius:50%; border:0; background:var(--green); color:#fff; font-size:70px;
+         box-shadow:0 8px 24px rgba(31,122,77,.35); cursor:pointer; display:flex; flex-direction:column; align-items:center; justify-content:center; }
+  .cam span { font-size:16px; font-weight:600; margin-top:4px; }
+  .cam:active { background:var(--green-d); }
+  .btn { display:block; width:100%; padding:15px; border-radius:12px; border:0; font-size:17px; font-weight:600; cursor:pointer; margin-top:10px; }
+  .btn.primary { background:var(--green); color:#fff; }
+  .btn.ghost { background:#fff; color:var(--ink); border:1px solid var(--line); }
+  .scenes { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin:12px 0; }
+  .scene { aspect-ratio:1; border-radius:12px; border:2px solid var(--line); background:#fff; font-size:44px; cursor:pointer; }
+  .photo { height:170px; border-radius:14px; background:linear-gradient(#b9c7b4,#8e9b86); display:flex; align-items:center; justify-content:center; font-size:84px; position:relative; }
+  .photo .tag { position:absolute; left:10px; bottom:10px; background:rgba(0,0,0,.6); color:#fff; font-size:12px; padding:4px 8px; border-radius:8px; }
+  .chips { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:10px 0; }
+  .chip { padding:12px 8px; border-radius:12px; border:2px solid var(--line); background:#fff; font-size:15px; cursor:pointer; text-align:left; }
+  .chip.sel { border-color:var(--green); background:#e6f3ec; font-weight:600; }
+  .note { background:#fff; border:1px solid var(--line); border-radius:12px; padding:10px 12px; font-size:14px; margin-top:8px; }
+  .card { background:#fff; border:1px solid var(--line); border-radius:14px; padding:12px; margin-bottom:10px; }
+  .card .top { display:flex; justify-content:space-between; align-items:center; gap:8px; }
+  .steps { display:flex; gap:4px; margin-top:10px; }
+  .steps div { flex:1; text-align:center; font-size:12px; padding:6px 2px; border-radius:8px; background:#eef1ec; color:var(--muted); }
+  .steps div.done { background:var(--green); color:#fff; font-weight:600; }
+  .big { font-size:64px; text-align:center; margin:20px 0 0; }
+  nav { display:flex; border-top:1px solid var(--line); background:#fff; }
+  nav button { flex:1; padding:12px 4px; border:0; background:none; font-size:13px; color:var(--muted); cursor:pointer; }
+  nav button.on { color:var(--green); font-weight:700; }
+  nav button b { display:block; font-size:22px; font-weight:400; }
+  .proto { background:#fff7e0; color:#6b4b00; font-size:12px; text-align:center; padding:5px; }
+</style>
+</head>
+<body>
+<div class="phone">
+  <div class="proto">Prototipo de prueba — fotos simuladas, nada se envía · <a href="dashboard.html">ver panel municipal</a></div>
+  <header><div><h1>Escanea Perú</h1><small>Municipalidad de [distrito]</small></div><div style="font-size:26px">♻️</div></header>
+
+  <main>
+    <section class="screen on" id="s-home">
+      <h2>¿Ves basura en la calle?</h2>
+      <p class="muted">Toma una foto. La municipalidad la recibe con la ubicación y te avisa cuando esté limpio.</p>
+      <button class="cam" id="btn-cam" aria-label="Tomar foto">📷<span>Tomar foto</span></button>
+      <p class="muted" style="text-align:center">No pedimos tu nombre ni tu número.</p>
+    </section>
+
+    <section class="screen" id="s-capture">
+      <h2>Cámara (simulada)</h2>
+      <p class="muted">En la app real se abre la cámara. Para la prueba, elige qué estás viendo:</p>
+      <div class="scenes" id="scenes"></div>
+      <label class="muted" for="place">¿Dónde estás? (en la app real: GPS automático)</label>
+      <select id="place" style="padding:12px;border-radius:10px;border:1px solid var(--line);font-size:16px;margin-top:6px"></select>
+      <button class="btn ghost" data-go="s-home">Cancelar</button>
+    </section>
+
+    <section class="screen" id="s-confirm">
+      <h2>¿Es esto?</h2>
+      <div class="photo"><span id="ph-icon"></span><span class="tag">🔒 Rostros y placas difuminados en tu teléfono</span></div>
+      <p class="muted" style="margin:10px 0 0">El teléfono sugiere el tipo. Tú confirmas o corriges:</p>
+      <div class="chips" id="chips"></div>
+      <div class="note">📍 <span id="cf-place"></span> · 🕒 <span id="cf-time"></span></div>
+      <button class="btn primary" id="btn-send">Enviar reporte</button>
+      <button class="btn ghost" data-go="s-home">Cancelar</button>
+    </section>
+
+    <section class="screen" id="s-sent">
+      <div class="big">✅</div>
+      <h2 style="text-align:center">Reporte enviado</h2>
+      <p class="muted" style="text-align:center">La municipalidad lo recibió. Puedes ver cuándo lo programan y cuándo lo limpian.</p>
+      <div class="note" id="sent-offline" style="display:none">📶 Sin señal: el reporte se enviará cuando vuelva la conexión.</div>
+      <button class="btn primary" data-go="s-list">Ver mis reportes</button>
+      <button class="btn ghost" data-go="s-home">Reportar otro</button>
+    </section>
+
+    <section class="screen" id="s-list">
+      <h2>Mis reportes</h2>
+      <div id="list"></div>
+      <p class="muted" id="empty" style="display:none">Todavía no has enviado reportes.</p>
+    </section>
+  </main>
+
+  <nav>
+    <button id="nav-home" class="on" data-go="s-home"><b>📷</b>Reportar</button>
+    <button id="nav-list" data-go="s-list"><b>📋</b>Mis reportes</button>
+  </nav>
+</div>
+
+<script src="store.js"></script>
+<script>
+const $ = (id) => document.getElementById(id);
+let draft = null;
+
+function go(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.toggle('on', s.id === id));
+  $('nav-home').classList.toggle('on', id !== 's-list');
+  $('nav-list').classList.toggle('on', id === 's-list');
+  if (id === 's-list') renderList();
+}
+document.querySelectorAll('[data-go]').forEach(b => b.addEventListener('click', () => go(b.dataset.go)));
+$('btn-cam').addEventListener('click', () => go('s-capture'));
+
+// Capture: simulated scenes
+$('scenes').innerHTML = Object.entries(EP.TYPES).map(([k, t]) =>
+  `<button class="scene" data-type="${k}" aria-label="${t.es}">${t.icon}</button>`).join('');
+$('place').innerHTML = EP.PLACES.map((p, i) => `<option value="${i}">${p.name}</option>`).join('');
+$('scenes').addEventListener('click', (e) => {
+  const b = e.target.closest('.scene'); if (!b) return;
+  const p = EP.PLACES[+$('place').value];
+  draft = { detected: b.dataset.type, object_type: b.dataset.type, place: p, timestamp: new Date().toISOString() };
+  $('ph-icon').textContent = EP.TYPES[draft.detected].icon;
+  $('cf-place').textContent = p.name;
+  $('cf-time').textContent = EP.fmt(draft.timestamp);
+  renderChips();
+  go('s-confirm');
+});
+function renderChips() {
+  $('chips').innerHTML = Object.entries(EP.TYPES).map(([k, t]) =>
+    `<button class="chip ${k === draft.object_type ? 'sel' : ''}" data-type="${k}">${t.icon} ${t.es}</button>`).join('');
+}
+$('chips').addEventListener('click', (e) => {
+  const b = e.target.closest('.chip'); if (!b) return;
+  draft.object_type = b.dataset.type; renderChips();
+});
+
+$('btn-send').addEventListener('click', () => {
+  const list = EP.load();
+  const id = Math.max(100, ...list.map(r => r.id)) + 1;
+  list.push({
+    id, context: 'street', object_type: draft.object_type, confidence: 0.8,
+    corrected: draft.object_type !== draft.detected,
+    place: draft.place.name, x: draft.place.x + (id % 5) - 2, y: draft.place.y + (id % 3) - 1,
+    timestamp: draft.timestamp, status: 'received', crew: '', cleaned_at: '', mine: true,
+  });
+  EP.save(list);
+  $('sent-offline').style.display = navigator.onLine ? 'none' : 'block';
+  go('s-sent');
+});
+
+function renderList() {
+  const mine = EP.load().filter(r => r.mine).reverse();
+  $('empty').style.display = mine.length ? 'none' : 'block';
+  const order = ['received', 'scheduled', 'cleaned'];
+  $('list').innerHTML = mine.map(r => {
+    const at = order.indexOf(r.status);
+    return `<div class="card" data-id="${r.id}">
+      <div class="top"><strong>${EP.TYPES[r.object_type].icon} ${EP.TYPES[r.object_type].es}</strong><span class="muted">#${r.id}</span></div>
+      <div class="muted">📍 ${r.place} · ${EP.fmt(r.timestamp)}</div>
+      <div class="steps">${order.map((s, i) => `<div class="${i <= at ? 'done' : ''}">${EP.STATUS[s]}</div>`).join('')}</div>
+    </div>`;
+  }).join('');
+}
+// Dashboard changes in another tab show up here immediately.
+window.addEventListener('storage', () => { if ($('s-list').classList.contains('on')) renderList(); });
+</script>
+</body>
+</html>

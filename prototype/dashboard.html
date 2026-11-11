@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Escanea Perú — prototipo panel municipal</title>
+<style>
+  :root { --green:#1f7a4d; --bg:#f3f5f1; --ink:#1c2420; --muted:#64706a; --line:#dde3dc; --red:#c0392b; --amber:#c47f00; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background:var(--bg); color:var(--ink); }
+  .proto { background:#fff7e0; color:#6b4b00; font-size:12px; text-align:center; padding:5px; }
+  header { background:var(--green); color:#fff; padding:12px 20px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; }
+  header h1 { margin:0; font-size:18px; }
+  header button { background:#fff; color:var(--green); border:0; border-radius:8px; padding:8px 12px; font-weight:600; cursor:pointer; margin-left:6px; }
+  .wrap { padding:16px 20px; max-width:1200px; margin:0 auto; }
+  .kpis { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:16px; }
+  .kpi { background:#fff; border:1px solid var(--line); border-radius:12px; padding:12px 14px; }
+  .kpi b { display:block; font-size:26px; }
+  .kpi span { color:var(--muted); font-size:13px; }
+  .grid { display:grid; grid-template-columns:minmax(260px,1fr) minmax(0,2.6fr); gap:16px; align-items:start; }
+  .panel { min-width:0; background:#fff; border:1px solid var(--line); border-radius:12px; padding:14px; }
+  .panel h2 { margin:0 0 10px; font-size:16px; }
+  .map { position:relative; width:100%; aspect-ratio:1; background:#e4ebe0; border-radius:10px; overflow:hidden; }
+  .map svg { position:absolute; inset:0; width:100%; height:100%; }
+  .pin { position:absolute; width:18px; height:18px; margin:-9px 0 0 -9px; border-radius:50%; border:2px solid #fff; cursor:pointer; box-shadow:0 1px 4px rgba(0,0,0,.4); padding:0; }
+  .pin.received { background:var(--red); } .pin.scheduled { background:var(--amber); } .pin.cleaned { background:var(--green); opacity:.55; }
+  .pin.hi { outline:3px solid #000; }
+  .legend { display:flex; gap:14px; font-size:13px; color:var(--muted); margin-top:8px; flex-wrap:wrap; }
+  .legend i { display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:4px; }
+  .tablewrap { overflow-x:auto; }
+  table { width:100%; border-collapse:collapse; font-size:14px; }
+  th, td { text-align:left; padding:8px 6px; border-bottom:1px solid var(--line); white-space:nowrap; }
+  th { color:var(--muted); font-weight:600; font-size:12px; text-transform:uppercase; }
+  tr.hi td { background:#eef6f1; }
+  select, .act { padding:6px 8px; border-radius:8px; border:1px solid var(--line); background:#fff; font-size:13px; cursor:pointer; }
+  .act.ok { background:var(--green); color:#fff; border-color:var(--green); }
+  .act.warn { color:var(--red); }
+  .badge { padding:3px 8px; border-radius:20px; font-size:12px; font-weight:600; color:#fff; }
+  .badge.received { background:var(--red); } .badge.scheduled { background:var(--amber); } .badge.cleaned { background:var(--green); }
+  .filters { display:flex; gap:8px; margin-bottom:10px; flex-wrap:wrap; }
+  @media (max-width:1000px) { .grid { grid-template-columns:minmax(0,1fr); } .kpis { grid-template-columns:1fr 1fr; } }
+</style>
+</head>
+<body>
+<div class="proto">Prototipo de prueba — datos de ejemplo guardados solo en este navegador · <a href="index.html">ver app del vecino</a></div>
+<header>
+  <h1>Escanea Perú · Panel municipal — [distrito]</h1>
+  <div><button id="btn-csv">Exportar CSV</button><button id="btn-reset">Reiniciar datos</button></div>
+</header>
+<div class="wrap">
+  <div class="kpis">
+    <div class="kpi"><b id="k-open">–</b><span>Reportes pendientes</span></div>
+    <div class="kpi"><b id="k-time">–</b><span>Tiempo promedio reporte → limpieza</span></div>
+    <div class="kpi"><b id="k-res">–</b><span>Reportes resueltos</span></div>
+    <div class="kpi"><b id="k-hot">–</b><span>Punto con más reportes</span></div>
+  </div>
+  <div class="grid">
+    <div class="panel">
+      <h2>Mapa de puntos críticos</h2>
+      <div class="map" id="map">
+        <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+          <rect x="0" y="74" width="100" height="26" fill="#bcd7e6"/>
+          <path d="M0 74 Q25 70 50 75 T100 73" stroke="#e9dfb8" stroke-width="3" fill="none"/>
+          <g stroke="#fff" stroke-width="1.6"><path d="M0 30H100M0 58H100M22 0V74M56 0V74M84 0V74"/></g>
+          <rect x="38" y="33" width="15" height="12" rx="2" fill="#b5d3a8"/>
+        </svg>
+      </div>
+      <div class="legend"><span><i style="background:var(--red)"></i>Recibido</span><span><i style="background:var(--amber)"></i>Programado</span><span><i style="background:var(--green)"></i>Limpiado</span></div>
+    </div>
+    <div class="panel">
+      <h2>Reportes</h2>
+      <div class="filters">
+        <select id="f-status"><option value="">Todos los estados</option><option value="received">Recibido</option><option value="scheduled">Programado</option><option value="cleaned">Limpiado</option></select>
+        <select id="f-type"><option value="">Todos los tipos</option></select>
+      </div>
+      <div class="tablewrap"><table>
+        <thead><tr><th>#</th><th>Tipo</th><th>Lugar</th><th>Reportado</th><th>Estado</th><th>Cuadrilla</th><th>Acción</th></tr></thead>
+        <tbody id="rows"></tbody>
+      </table></div>
+    </div>
+  </div>
+</div>
+
+<script src="store.js"></script>
+<script>
+const $ = (id) => document.getElementById(id);
+let list = EP.load(), hi = null;
+
+$('f-type').innerHTML += Object.entries(EP.TYPES).map(([k, t]) => `<option value="${k}">${t.es}</option>`).join('');
+
+function render() {
+  const fs = $('f-status').value, ft = $('f-type').value;
+  const shown = list.filter(r => !r.flagged && (!fs || r.status === fs) && (!ft || r.object_type === ft))
+                    .sort((a, b) => b.timestamp.localeCompare(a.timestamp));
+  const valid = list.filter(r => !r.flagged);
+
+  // KPIs
+  const cleaned = valid.filter(r => r.status === 'cleaned' && r.cleaned_at);
+  const avgH = cleaned.length ? cleaned.reduce((s, r) => s + (new Date(r.cleaned_at) - new Date(r.timestamp)) / 3600e3, 0) / cleaned.length : null;
+  $('k-open').textContent = valid.filter(r => r.status !== 'cleaned').length;
+  $('k-time').textContent = avgH == null ? '–' : avgH.toFixed(1) + ' h';
+  $('k-res').textContent = valid.length ? Math.round(100 * cleaned.length / valid.length) + '%' : '–';
+  const byPlace = {};
+  valid.forEach(r => byPlace[r.place] = (byPlace[r.place] || 0) + 1);
+  const top = Object.entries(byPlace).sort((a, b) => b[1] - a[1])[0];
+  $('k-hot').textContent = top ? top[0] : '–';
+  $('k-hot').style.fontSize = '17px';
+
+  // Map
+  $('map').querySelectorAll('.pin').forEach(p => p.remove());
+  shown.forEach(r => {
+    const p = document.createElement('button');
+    p.className = `pin ${r.status} ${hi === r.id ? 'hi' : ''}`;
+    p.style.left = r.x + '%'; p.style.top = r.y + '%';
+    p.title = `#${r.id} ${EP.TYPES[r.object_type].es} — ${r.place}`;
+    p.dataset.id = r.id;
+    $('map').appendChild(p);
+  });
+
+  // Table
+  $('rows').innerHTML = shown.map(r => {
+    const crew = `<select data-crew="${r.id}" ${r.status === 'cleaned' ? 'disabled' : ''}><option value="">Sin asignar</option>${
+      EP.CREWS.map(c => `<option ${c === r.crew ? 'selected' : ''}>${c}</option>`).join('')}</select>`;
+    const act = r.status === 'cleaned' ? '✓'
+      : `<button class="act ok" data-clean="${r.id}">✓ Limpiado</button> <button class="act warn" data-flag="${r.id}" title="Reporte falso">⚑</button>`;
+    return `<tr data-id="${r.id}" class="${hi === r.id ? 'hi' : ''}">
+      <td>${r.id}</td><td>${EP.TYPES[r.object_type].icon} ${EP.TYPES[r.object_type].es}</td><td>${r.place}</td>
+      <td>${EP.fmt(r.timestamp)}</td><td><span class="badge ${r.status}">${EP.STATUS[r.status]}</span></td>
+      <td>${crew}</td><td>${act}</td></tr>`;
+  }).join('') || '<tr><td colspan="7">No hay reportes con este filtro.</td></tr>';
+}
+
+function update(id, patch) {
+  list = EP.load();
+  const r = list.find(x => x.id === id); if (!r) return;
+  Object.assign(r, patch); EP.save(list); render();
+}
+$('rows').addEventListener('change', (e) => {
+  const id = +e.target.dataset.crew; if (!id) return;
+  update(id, { crew: e.target.value, status: e.target.value ? 'scheduled' : 'received' });
+});
+$('rows').addEventListener('click', (e) => {
+  const t = e.target;
+  if (t.dataset.clean) return update(+t.dataset.clean, { status: 'cleaned', cleaned_at: new Date().toISOString() });
+  if (t.dataset.flag) return update(+t.dataset.flag, { flagged: true });
+  const tr = t.closest('tr[data-id]');
+  if (tr && !t.closest('select')) { hi = +tr.dataset.id; render(); }
+});
+$('map').addEventListener('click', (e) => { if (e.target.dataset.id) { hi = +e.target.dataset.id; render(); } });
+$('f-status').addEventListener('change', render);
+$('f-type').addEventListener('change', render);
+$('btn-reset').addEventListener('click', () => { list = EP.reset(); hi = null; render(); });
+
+function toCSV() {
+  const cols = ['id', 'context', 'object_type', 'confidence', 'corrected', 'place', 'timestamp', 'status', 'crew', 'cleaned_at'];
+  const esc = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+  return [cols.join(','), ...list.filter(r => !r.flagged).map(r => cols.map(c => esc(r[c])).join(','))].join('\n');
+}
+$('btn-csv').addEventListener('click', () => {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([toCSV()], { type: 'text/csv' }));
+  a.download = 'reportes.csv'; a.click();
+});
+// New citizen reports from another tab appear immediately.
+window.addEventListener('storage', () => { list = EP.load(); render(); });
+render();
+</script>
+</body>
+</html>
