@@ -1,17 +1,23 @@
 # Escanea Perú — phone prototype (Expo)
 
-Citizen Street flow for plan step 0.5, runnable on a real phone with **Expo Go**:
-English or Spanish (🌐 button in the header; English by default, the choice is remembered).
+Runs on a real phone with **Expo Go**. English or Spanish (language button; English by default, remembered).
+Three tabs:
 
-camera button → real photo → real GPS location → choose litter type → send → "Mis reportes" with status.
+- **Scan** (step 0.5a, decision D-014) — live camera with **simulated** plastic detections, to test the interface
+  before the model is trained. The screen shows only the plastic share in the room and the mix of plastic types.
+  Tap the number or the bar for details (types of plastic, objects by category); tap a box for that item.
+  First open asks for consent; the "Counting" pill pauses counting; "New room" in the details restarts.
+- **Report** — the separate dump-point flow: real photo → GPS → choose litter type → send.
+- **My reports** — status of sent reports.
 
 ## What is real and what is simulated
 
 | Real | Simulated / missing |
 |---|---|
-| Camera, GPS, address lookup, timestamp | Litter detection — the user picks the type (no AI model yet) |
-| Reports saved on the phone, survive restarts | Blurring of faces and plates — not done; the photo never leaves the phone |
-| | Sending to the municipality — there is no server. Whoever runs the test **long-presses a report** in "Mis reportes" to move it to *Programado* / *Limpiado* |
+| Camera picture in the scanner | **Recognition**: boxes, items and percentages are invented at random places; they do not match what the camera sees. Marked "DEMO" on screen |
+| Camera, GPS, address lookup, timestamp in Report | Type of plastic shown is the usual one for the item, never measured |
+| Reports and consent saved on the phone, survive restarts | Sending — there is no server; nothing leaves the phone. Whoever runs the test **long-presses a report** in "My reports" to move it to *Scheduled* / *Cleaned* |
+| | Blurring of faces and plates in Report — not done |
 
 The municipal dashboard is still the HTML prototype in `../prototype/dashboard.html`; it is not connected to this app.
 

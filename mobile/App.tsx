@@ -4,13 +4,14 @@ import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { Capture, locate, takePhoto } from './src/capture';
 import { ObjectType, Report, STATUS_ORDER, TYPES, formatWhen, loadReports, saveReports } from './src/data';
-import { Lang, STRINGS, loadLang, saveLang } from './src/i18n';
+import { Lang, SCAN, STRINGS, loadLang, saveLang } from './src/i18n';
+import Scanner from './src/Scanner';
 
-type Screen = 'home' | 'confirm' | 'sent' | 'list';
+type Screen = 'scan' | 'home' | 'confirm' | 'sent' | 'list';
 const GREEN = '#1f7a4d';
 
 export default function App() {
-  const [screen, setScreen] = useState<Screen>('home');
+  const [screen, setScreen] = useState<Screen>('scan');
   const [reports, setReports] = useState<Report[]>([]);
   const [draft, setDraft] = useState<Capture | null>(null);
   const [type, setType] = useState<ObjectType | null>(null);
@@ -59,7 +60,8 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <StatusBar style="light" />
-      <SafeAreaView style={s.root} edges={['top', 'bottom']}>
+      <SafeAreaView style={s.root} edges={screen === 'scan' ? ['bottom'] : ['top', 'bottom']}>
+        {screen === 'scan' ? <Scanner lang={lang} onToggleLang={toggleLang} /> : <>
         <View style={s.header}>
           <View>
             <Text style={s.title}>Escanea Perú</Text>
@@ -159,11 +161,16 @@ export default function App() {
             </View>
           )}
         </ScrollView>
+        </>}
 
         <View style={s.nav}>
+          <Pressable testID="nav-scan" style={s.navBtn} onPress={() => setScreen('scan')}>
+            <Text style={s.navIcon}>♻️</Text>
+            <Text style={[s.navText, screen === 'scan' && s.navOn]}>{SCAN[lang].navScan}</Text>
+          </Pressable>
           <Pressable testID="nav-home" style={s.navBtn} onPress={() => setScreen('home')}>
-            <Text style={s.navIcon}>📷</Text>
-            <Text style={[s.navText, screen !== 'list' && s.navOn]}>{t.navReport}</Text>
+            <Text style={s.navIcon}>📍</Text>
+            <Text style={[s.navText, screen !== 'list' && screen !== 'scan' && s.navOn]}>{t.navReport}</Text>
           </Pressable>
           <Pressable testID="nav-list" style={s.navBtn} onPress={() => setScreen('list')}>
             <Text style={s.navIcon}>📋</Text>

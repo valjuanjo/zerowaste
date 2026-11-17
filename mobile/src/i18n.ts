@@ -74,3 +74,55 @@ export async function loadLang(): Promise<Lang> {
 export function saveLang(lang: Lang): void {
   AsyncStorage.setItem(KEY, lang).catch(() => {});
 }
+
+import type { Category } from './demo';
+
+type ScanStrings = {
+  plastic: string; ofItems: (n: number) => string; demo: string; demoInfo: string;
+  counting: string; paused: string; pause: string; resume: string;
+  pointCamera: string; types: string; byCategory: string; items: (n: number) => string; plasticOf: (p: number, n: number) => string;
+  notPlastic: string; resinNote: string; confidence: string; newRoom: string; close: string;
+  noCamera: string; allowCamera: string;
+  consentTitle: string; consentBody: string; consentMore: string; consentMoreBody: string; start: string;
+  navScan: string;
+  categories: Record<Category, string>; itemNames: Record<string, string>;
+};
+
+export const SCAN: Record<Lang, ScanStrings> = {
+  en: {
+    plastic: 'plastic', ofItems: (n) => `of ${n} items in this room`, demo: 'DEMO',
+    demoInfo: 'Demo: the items and numbers are invented to test the screen. The plastic model is not trained yet.',
+    counting: 'Counting', paused: 'Paused', pause: 'Pause', resume: 'Resume',
+    pointCamera: 'Point the camera around the room',
+    types: 'Types of plastic', byCategory: 'Objects by category', items: (n) => `${n} item${n === 1 ? '' : 's'}`,
+    plasticOf: (p, n) => `${p} of ${n} plastic`,
+    notPlastic: 'Not plastic', resinNote: 'Type of plastic is the usual one for this object, not measured.',
+    confidence: 'sure', newRoom: 'New room', close: 'Close',
+    noCamera: 'Camera not available — the demo continues without the picture.', allowCamera: 'Allow camera',
+    consentTitle: 'Escanea counts the plastic it sees',
+    consentBody: 'The picture never leaves your phone. Only counts by district are sent. You can pause any time.',
+    consentMore: 'More detail',
+    consentMoreBody: 'Sent: item type, plastic yes/no, time, district. Not sent: images, exact location, your name or number. In this test nothing is sent at all.',
+    start: 'Start scanning', navScan: 'Scan',
+    categories: { bottles: 'Bottles', bags: 'Bags & film', packaging: 'Wrappers & trays', cups_containers: 'Cups & containers', caps: 'Caps & lids', tecnopor: 'Styrofoam', metal: 'Metal', glass: 'Glass', paper: 'Paper & carton' },
+    itemNames: { water_bottle: 'Water bottle', soda_bottle: 'Soda bottle', shampoo_bottle: 'Shampoo bottle', carrier_bag: 'Carrier bag', bread_bag: 'Bread bag', snack_wrapper: 'Snack wrapper', food_tray: 'Food tray', yogurt_cup: 'Yogurt cup', takeaway_box: 'Takeaway box', bottle_cap: 'Bottle cap', foam_cup: 'Foam cup', foam_box: 'Foam food box', can: 'Can', glass_jar: 'Glass jar', carton: 'Milk carton', newspaper: 'Newspaper' },
+  },
+  es: {
+    plastic: 'plástico', ofItems: (n) => `de ${n} objetos en este ambiente`, demo: 'DEMO',
+    demoInfo: 'Demo: los objetos y números son inventados para probar la pantalla. El modelo de plástico aún no está entrenado.',
+    counting: 'Contando', paused: 'En pausa', pause: 'Pausar', resume: 'Seguir',
+    pointCamera: 'Apunta la cámara por el ambiente',
+    types: 'Tipos de plástico', byCategory: 'Objetos por categoría', items: (n) => `${n} objeto${n === 1 ? '' : 's'}`,
+    plasticOf: (p, n) => `${p} de ${n} de plástico`,
+    notPlastic: 'No es plástico', resinNote: 'El tipo de plástico es el habitual para este objeto, no se mide.',
+    confidence: 'seguro', newRoom: 'Nuevo ambiente', close: 'Cerrar',
+    noCamera: 'Cámara no disponible — la demo sigue sin imagen.', allowCamera: 'Permitir cámara',
+    consentTitle: 'Escanea cuenta el plástico que ve',
+    consentBody: 'La imagen nunca sale de tu teléfono. Solo se envían conteos por distrito. Puedes pausar cuando quieras.',
+    consentMore: 'Más detalle',
+    consentMoreBody: 'Se envía: tipo de objeto, plástico sí/no, hora, distrito. No se envía: imágenes, ubicación exacta, tu nombre ni número. En esta prueba no se envía nada.',
+    start: 'Empezar a escanear', navScan: 'Escanear',
+    categories: { bottles: 'Botellas', bags: 'Bolsas y film', packaging: 'Envolturas y bandejas', cups_containers: 'Vasos y envases', caps: 'Tapas', tecnopor: 'Tecnopor', metal: 'Metal', glass: 'Vidrio', paper: 'Papel y cartón' },
+    itemNames: { water_bottle: 'Botella de agua', soda_bottle: 'Botella de gaseosa', shampoo_bottle: 'Frasco de champú', carrier_bag: 'Bolsa de compras', bread_bag: 'Bolsa de pan', snack_wrapper: 'Envoltura de snack', food_tray: 'Bandeja', yogurt_cup: 'Vaso de yogur', takeaway_box: 'Táper', bottle_cap: 'Tapa', foam_cup: 'Vaso de tecnopor', foam_box: 'Caja de tecnopor', can: 'Lata', glass_jar: 'Frasco de vidrio', carton: 'Caja de leche', newspaper: 'Periódico' },
+  },
+};
