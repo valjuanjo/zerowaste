@@ -8,7 +8,9 @@ Three tabs:
   Visual style: see-through — frosted glass panels, thin glowing corner brackets, a ring around the main number,
   a sweeping scan line.
   Tap the number or the bar for details (types of plastic, objects by category); tap a box for that item.
-  First open asks for consent; the "Counting" pill pauses counting; "New room" in the details restarts.
+  A scan lasts **30 seconds** (ring around the number fills up; pause stops the clock), then a results screen
+  shows the plastic share, types, objects by category and up to 3 **recommendations** (D-015; draft texts in
+  `src/recommend.ts`). First open asks for consent; the "Counting" pill pauses counting; "Scan again" on the results starts a new 30 seconds.
 - **Report** — the separate dump-point flow: real photo → GPS → choose litter type → send.
 - **My reports** — status of sent reports.
 

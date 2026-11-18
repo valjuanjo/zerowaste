@@ -85,6 +85,7 @@ type ScanStrings = {
   noCamera: string; allowCamera: string;
   consentTitle: string; consentBody: string; consentMore: string; consentMoreBody: string; start: string;
   navScan: string;
+  startSub: string; resultKicker: string; recsTitle: string; scanAgain: string; recsNote: string; left: string;
   categories: Record<Category, string>; itemNames: Record<string, string>;
 };
 
@@ -104,6 +105,7 @@ export const SCAN: Record<Lang, ScanStrings> = {
     consentMore: 'More detail',
     consentMoreBody: 'Sent: item type, plastic yes/no, time, district. Not sent: images, exact location, your name or number. In this test nothing is sent at all.',
     start: 'Start scanning', navScan: 'Scan',
+    startSub: '30-second scan · move the phone slowly around the room', resultKicker: 'Result · 30-second scan', recsTitle: 'What you can do', scanAgain: 'Scan again', recsNote: 'Recommendations are drafts, to be checked with the district recycling program.', left: 'left',
     categories: { bottles: 'Bottles', bags: 'Bags & film', packaging: 'Wrappers & trays', cups_containers: 'Cups & containers', caps: 'Caps & lids', tecnopor: 'Styrofoam', metal: 'Metal', glass: 'Glass', paper: 'Paper & carton' },
     itemNames: { water_bottle: 'Water bottle', soda_bottle: 'Soda bottle', shampoo_bottle: 'Shampoo bottle', carrier_bag: 'Carrier bag', bread_bag: 'Bread bag', snack_wrapper: 'Snack wrapper', food_tray: 'Food tray', yogurt_cup: 'Yogurt cup', takeaway_box: 'Takeaway box', bottle_cap: 'Bottle cap', foam_cup: 'Foam cup', foam_box: 'Foam food box', can: 'Can', glass_jar: 'Glass jar', carton: 'Milk carton', newspaper: 'Newspaper' },
   },
@@ -122,6 +124,7 @@ export const SCAN: Record<Lang, ScanStrings> = {
     consentMore: 'Más detalle',
     consentMoreBody: 'Se envía: tipo de objeto, plástico sí/no, hora, distrito. No se envía: imágenes, ubicación exacta, tu nombre ni número. En esta prueba no se envía nada.',
     start: 'Empezar a escanear', navScan: 'Escanear',
+    startSub: 'Escaneo de 30 segundos · mueve el teléfono despacio por el ambiente', resultKicker: 'Resultado · escaneo de 30 segundos', recsTitle: 'Qué puedes hacer', scanAgain: 'Escanear de nuevo', recsNote: 'Las recomendaciones son borradores, por revisar con el programa de reciclaje del distrito.', left: 'quedan',
     categories: { bottles: 'Botellas', bags: 'Bolsas y film', packaging: 'Envolturas y bandejas', cups_containers: 'Vasos y envases', caps: 'Tapas', tecnopor: 'Tecnopor', metal: 'Metal', glass: 'Vidrio', paper: 'Papel y cartón' },
     itemNames: { water_bottle: 'Botella de agua', soda_bottle: 'Botella de gaseosa', shampoo_bottle: 'Frasco de champú', carrier_bag: 'Bolsa de compras', bread_bag: 'Bolsa de pan', snack_wrapper: 'Envoltura de snack', food_tray: 'Bandeja', yogurt_cup: 'Vaso de yogur', takeaway_box: 'Táper', bottle_cap: 'Tapa', foam_cup: 'Vaso de tecnopor', foam_box: 'Caja de tecnopor', can: 'Lata', glass_jar: 'Frasco de vidrio', carton: 'Caja de leche', newspaper: 'Periódico' },
   },

@@ -12,9 +12,12 @@ import {
   addToTally, emptyTally, nextFrame, rng,
 } from './demo';
 import { Lang, SCAN } from './i18n';
+import { recommend } from './recommend';
 
 const CONSENT_KEY = 'ep_scan_consent_v1';
 const TICK_MS = 800;
+const SCAN_SECONDS = 30;
+const clock = (sec: number) => `0:${String(sec).padStart(2, '0')}`;
 const pct = (a: number, b: number) => (b ? Math.round((100 * a) / b) : 0);
 
 export default function Scanner({ lang, onToggleLang, bottomInset = 0 }: { lang: Lang; onToggleLang: () => void; bottomInset?: number }) {
@@ -28,6 +31,8 @@ export default function Scanner({ lang, onToggleLang, bottomInset = 0 }: { lang:
   const [sheet, setSheet] = useState(false);
   const [demoInfo, setDemoInfo] = useState(false);
   const [picked, setPicked] = useState<Detection | null>(null);
+  const [phase, setPhase] = useState<'ready' | 'scanning' | 'done'>('ready');
+  const [left, setLeft] = useState(SCAN_SECONDS);
 
   const rand = useRef(rng(1)).current;
   const uid = useRef(0);
@@ -53,7 +58,7 @@ export default function Scanner({ lang, onToggleLang, bottomInset = 0 }: { lang:
 
   // Simulated recognition loop. It keeps showing boxes while paused, but nothing is counted.
   useEffect(() => {
-    if (!consent) return;
+    if (!consent || phase !== 'scanning') return;
     const h = setInterval(() => {
       const { dets: next, added } = nextFrame(detsRef.current, rand, () => ++uid.current);
       if (added.length && !pausedRef.current) {
@@ -64,7 +69,24 @@ export default function Scanner({ lang, onToggleLang, bottomInset = 0 }: { lang:
       setDets(next);
     }, TICK_MS);
     return () => clearInterval(h);
-  }, [consent]);
+  }, [consent, phase]);
+
+  // 30-second countdown; it stops while paused. At zero the scan ends and the results open.
+  useEffect(() => {
+    if (phase !== 'scanning' || paused) return;
+    if (left <= 0) {
+      setPhase('done'); setSheet(false); setPicked(null);
+      detsRef.current = []; setDets([]);
+      return;
+    }
+    const h = setTimeout(() => setLeft((v) => v - 1), 1000);
+    return () => clearTimeout(h);
+  }, [phase, paused, left]);
+
+  function startScan() {
+    setTally(emptyTally()); detsRef.current = []; setDets([]); setPicked(null);
+    setPaused(false); setLeft(SCAN_SECONDS); setPhase('scanning');
+  }
 
   // A picked item's card closes by itself once the item leaves the view.
   useEffect(() => {
@@ -77,12 +99,13 @@ export default function Scanner({ lang, onToggleLang, bottomInset = 0 }: { lang:
   function accept() {
     setConsent(true);
     AsyncStorage.setItem(CONSENT_KEY, 'yes').catch(() => {});
+    startScan();
   }
+
+  const scanning = phase === 'scanning';
 
   const share = pct(tally.plastic, tally.total);
   const resins = RESIN_ORDER.filter((r) => tally.byResin[r] > 0).sort((a, b) => tally.byResin[b] - tally.byResin[a]);
-  const cats = (Object.keys(CATEGORY_ICON) as Category[]).filter((c) => tally.byCategory[c].n > 0)
-    .sort((a, b) => tally.byCategory[b].plastic - tally.byCategory[a].plastic || tally.byCategory[b].n - tally.byCategory[a].n);
 
   return (
     <View style={s.root}>
@@ -92,7 +115,7 @@ export default function Scanner({ lang, onToggleLang, bottomInset = 0 }: { lang:
       <View pointerEvents="none" style={[StyleSheet.absoluteFill, s.tint]} />
 
       {/* Scan line */}
-      {consent && !paused && (
+      {scanning && !paused && (
         <Animated.View pointerEvents="none" style={[s.sweep, {
           transform: [{ translateY: sweep.interpolate({ inputRange: [0, 1], outputRange: [140, 620] }) }],
           opacity: sweep.interpolate({ inputRange: [0, 0.1, 0.9, 1], outputRange: [0, 1, 1, 0] }),
@@ -102,7 +125,7 @@ export default function Scanner({ lang, onToggleLang, bottomInset = 0 }: { lang:
       )}
 
       {/* Detections: corner brackets, no fill */}
-      {consent && dets.map((d) => {
+      {scanning && dets.map((d) => {
         const plastic = !!d.item.resin;
         const color = plastic ? RESIN_COLOR[d.item.resin as Resin] : 'rgba(255,255,255,0.55)';
         const sel = picked?.uid === d.uid;
@@ -126,11 +149,13 @@ export default function Scanner({ lang, onToggleLang, bottomInset = 0 }: { lang:
 
       <SafeAreaView style={s.overlay} edges={['top']} pointerEvents="box-none">
         <View style={s.topRow} pointerEvents="box-none">
-          <Pressable testID="pause-toggle" onPress={() => setPaused(!paused)} style={s.chip}
-            accessibilityLabel={paused ? t.resume : t.pause}>
-            <View style={[s.dot, paused ? s.dotOff : s.dotOn]} />
-            <Text style={s.chipText}>{(paused ? t.paused : t.counting).toUpperCase()}</Text>
-          </Pressable>
+          {scanning ? (
+            <Pressable testID="pause-toggle" onPress={() => setPaused(!paused)} style={s.chip}
+              accessibilityLabel={paused ? t.resume : t.pause}>
+              <View style={[s.dot, paused ? s.dotOff : s.dotOn]} />
+              <Text style={s.chipText}>{(paused ? t.paused : t.counting).toUpperCase()}</Text>
+            </Pressable>
+          ) : <View />}
           <View style={{ flexDirection: 'row', gap: 6 }}>
             <Pressable testID="demo-badge" onPress={() => setDemoInfo(!demoInfo)} style={[s.chip, s.chipDemo]}>
               <Text style={[s.chipText, { color: AMBER }]}>{t.demo}</Text>
@@ -146,15 +171,19 @@ export default function Scanner({ lang, onToggleLang, bottomInset = 0 }: { lang:
           </Pressable>
         )}
 
-        {/* The one big number, inside a ring */}
-        <Pressable testID="scan-percent" onPress={() => setSheet(true)} style={s.hero}>
-          <Ring value={share / 100} />
-          <View style={s.heroInner}>
-            <Text style={s.heroNum}>{share}<Text style={s.heroPct}>%</Text></Text>
-            <Text style={s.heroLabel}>{t.plastic.toUpperCase()}</Text>
-          </View>
-          <Text style={s.heroSub}>{tally.total ? t.ofItems(tally.total) : t.pointCamera}</Text>
-        </Pressable>
+        {/* The one big number, inside a ring that fills with the 30 seconds */}
+        {scanning && (
+          <Pressable testID="scan-percent" onPress={() => setSheet(true)} style={s.hero}>
+            <Ring value={1 - left / SCAN_SECONDS} />
+            <View style={s.heroInner}>
+              <Text style={s.heroNum}>{share}<Text style={s.heroPct}>%</Text></Text>
+              <Text style={s.heroLabel}>{t.plastic.toUpperCase()}</Text>
+            </View>
+            <Text testID="scan-left" style={s.heroSub}>
+              <Text style={s.heroClock}>{clock(left)} {t.left}</Text>{'  ·  '}{tally.total ? t.ofItems(tally.total) : t.pointCamera}
+            </Text>
+          </Pressable>
+        )}
         {!perm?.granted && perm && (
           <Glass style={s.infoBox}>
             <Text style={s.infoText}>{t.noCamera}</Text>
@@ -164,7 +193,7 @@ export default function Scanner({ lang, onToggleLang, bottomInset = 0 }: { lang:
       </SafeAreaView>
 
       {/* Bottom: mix of plastic types, or the picked item */}
-      <View style={[s.bottom, { bottom: bottomInset }]} pointerEvents="box-none">
+      {scanning && <View style={[s.bottom, { bottom: bottomInset }]} pointerEvents="box-none">
         {picked ? (
           <Pressable testID="item-card" onPress={() => setPicked(null)}>
             <Glass style={s.card}>
@@ -198,53 +227,69 @@ export default function Scanner({ lang, onToggleLang, bottomInset = 0 }: { lang:
             </Glass>
           </Pressable>
         )}
-      </View>
+      </View>}
+
+      {/* Ready: one big start button */}
+      {phase === 'ready' && consent && (
+        <View style={s.readyWrap} pointerEvents="box-none">
+          <Pressable testID="scan-start" onPress={startScan} style={s.startBtn} accessibilityLabel={t.start}>
+            <Ring value={1} size={190} />
+            <Text style={s.startNum}>30<Text style={s.heroPct}>s</Text></Text>
+            <Text style={s.heroLabel}>{t.start.toUpperCase()}</Text>
+          </Pressable>
+          <Text style={[s.heroSub, { width: 260 }]}>{t.startSub}</Text>
+        </View>
+      )}
 
       {/* Details sheet: frosted glass over the live camera */}
-      {sheet && (
+      {sheet && scanning && (
         <View style={s.sheetWrap}>
           <Pressable style={StyleSheet.absoluteFill} onPress={() => setSheet(false)} />
           <Glass testID="sheet" style={[s.sheet, { marginBottom: bottomInset }]} strong>
             <View style={s.grabber} />
             <ScrollView contentContainerStyle={{ padding: 20, paddingTop: 8, gap: 6 }}>
               <Text style={s.sheetHead}>{share}<Text style={s.sheetHeadPct}>% {t.plastic}</Text></Text>
-              <Text style={s.muted}>{t.ofItems(tally.total)}</Text>
-
-              <Text style={s.section}>{t.types.toUpperCase()}</Text>
-              {resins.map((r) => (
-                <View key={r} style={s.line}>
-                  <Text style={[s.code, { color: RESIN_COLOR[r] }]}>{r}</Text>
-                  <View style={s.track}><View style={[s.fill, { width: `${pct(tally.byResin[r], tally.plastic)}%`, backgroundColor: RESIN_COLOR[r], shadowColor: RESIN_COLOR[r] }]} /></View>
-                  <Text style={s.lineVal}>{pct(tally.byResin[r], tally.plastic)}%</Text>
-                </View>
-              ))}
-              <Text style={s.fine}>{t.resinNote}</Text>
-
-              <Text style={s.section}>{t.byCategory.toUpperCase()}</Text>
-              {cats.map((c) => {
-                const v = tally.byCategory[c];
-                return (
-                  <View key={c} testID={`cat-${c}`} style={[s.line, s.catLine]}>
-                    <Text style={[s.lineName, v.plastic === 0 && { opacity: 0.5 }]}>{t.categories[c]}</Text>
-                    <Text style={[s.lineVal, { width: 'auto' }, v.plastic === 0 && s.muted]}>
-                      {v.plastic ? t.plasticOf(v.plastic, v.n) : `${t.items(v.n)} · ${t.notPlastic.toLowerCase()}`}
-                    </Text>
-                  </View>
-                );
-              })}
-
-              <View style={{ flexDirection: 'row', gap: 10, marginTop: 16 }}>
-                <Pressable testID="new-room" onPress={() => { setTally(emptyTally()); setSheet(false); }} style={[s.btn, s.btnGhost]}>
-                  <Text style={s.btnText}>{t.newRoom.toUpperCase()}</Text>
-                </Pressable>
-                <Pressable testID="sheet-close" onPress={() => setSheet(false)} style={[s.btn, s.btnPrimary]}>
-                  <Text style={[s.btnText, { color: CYAN }]}>{t.close.toUpperCase()}</Text>
-                </Pressable>
-              </View>
+              <Text style={s.muted}>{t.ofItems(tally.total)}  ·  {clock(left)} {t.left}</Text>
+              <Breakdown tally={tally} lang={lang} />
+              <Pressable testID="sheet-close" onPress={() => setSheet(false)} style={[s.btn, s.btnPrimary, s.btnSolo]}>
+                <Text style={[s.btnText, { color: CYAN }]}>{t.close.toUpperCase()}</Text>
+              </Pressable>
               <Text style={[s.fine, { color: AMBER, opacity: 0.8 }]}>{t.demoInfo}</Text>
             </ScrollView>
           </Glass>
         </View>
+      )}
+
+      {/* Results after 30 seconds, with recommendations */}
+      {phase === 'done' && (
+        <Glass testID="results" style={[s.results, { bottom: bottomInset }]} strong>
+          <SafeAreaView edges={['top']} style={{ flex: 1 }}>
+            <ScrollView contentContainerStyle={{ padding: 22, gap: 6 }}>
+              <Text style={s.section}>{t.resultKicker.toUpperCase()}</Text>
+              <Text style={s.sheetHead}>{share}<Text style={s.sheetHeadPct}>% {t.plastic}</Text></Text>
+              <Text style={s.muted}>{t.ofItems(tally.total)}</Text>
+
+              <Text style={s.section}>{t.recsTitle.toUpperCase()}</Text>
+              {recommend(tally, lang).map((r, i) => (
+                <View key={r.id} testID={`rec-${r.id}`} style={[s.rec, i === 0 && s.recFirst]}>
+                  <Text style={[s.recGlyph, i === 0 && { color: CYAN }]}>{r.glyph}</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={s.recTitle}>{r.title}</Text>
+                    <Text style={s.recBody}>{r.body}</Text>
+                  </View>
+                </View>
+              ))}
+
+              <Breakdown tally={tally} lang={lang} />
+
+              <Pressable testID="scan-again" onPress={startScan} style={[s.btn, s.btnPrimary, s.btnSolo]}>
+                <Text style={[s.btnText, { color: CYAN }]}>{t.scanAgain.toUpperCase()}</Text>
+              </Pressable>
+              <Text style={s.fine}>{t.recsNote}</Text>
+              <Text style={[s.fine, { color: AMBER, opacity: 0.8 }]}>{t.demoInfo}</Text>
+            </ScrollView>
+          </SafeAreaView>
+        </Glass>
       )}
 
       {/* First open: consent before counting starts (governance rule 1a) */}
@@ -263,6 +308,40 @@ export default function Scanner({ lang, onToggleLang, bottomInset = 0 }: { lang:
         </Glass>
       )}
     </View>
+  );
+}
+
+/** Plastic types and objects by category; shared by the live details sheet and the results. */
+function Breakdown({ tally, lang }: { tally: Tally; lang: Lang }) {
+  const t = SCAN[lang];
+  const resins = RESIN_ORDER.filter((r) => tally.byResin[r] > 0).sort((a, b) => tally.byResin[b] - tally.byResin[a]);
+  const cats = (Object.keys(CATEGORY_ICON) as Category[]).filter((c) => tally.byCategory[c].n > 0)
+    .sort((a, b) => tally.byCategory[b].plastic - tally.byCategory[a].plastic || tally.byCategory[b].n - tally.byCategory[a].n);
+  return (
+    <>
+      <Text style={s.section}>{t.types.toUpperCase()}</Text>
+      {resins.map((r) => (
+        <View key={r} style={s.line}>
+          <Text style={[s.code, { color: RESIN_COLOR[r] }]}>{r}</Text>
+          <View style={s.track}><View style={[s.fill, { width: `${pct(tally.byResin[r], tally.plastic)}%`, backgroundColor: RESIN_COLOR[r], shadowColor: RESIN_COLOR[r] }]} /></View>
+          <Text style={s.lineVal}>{pct(tally.byResin[r], tally.plastic)}%</Text>
+        </View>
+      ))}
+      <Text style={s.fine}>{t.resinNote}</Text>
+
+      <Text style={s.section}>{t.byCategory.toUpperCase()}</Text>
+      {cats.map((c) => {
+        const v = tally.byCategory[c];
+        return (
+          <View key={c} testID={`cat-${c}`} style={[s.line, s.catLine]}>
+            <Text style={[s.lineName, v.plastic === 0 && { opacity: 0.5 }]}>{t.categories[c]}</Text>
+            <Text style={[s.lineVal, { width: 'auto' }, v.plastic === 0 && s.muted]}>
+              {v.plastic ? t.plasticOf(v.plastic, v.n) : `${t.items(v.n)} · ${t.notPlastic.toLowerCase()}`}
+            </Text>
+          </View>
+        );
+      })}
+    </>
   );
 }
 
@@ -364,6 +443,17 @@ const s = StyleSheet.create({
   btnPrimary: { borderColor: 'rgba(94,242,255,0.6)', backgroundColor: 'rgba(94,242,255,0.08)' },
   btnGhost: { borderColor: HAIR, backgroundColor: 'rgba(255,255,255,0.03)' },
   btnText: { color: 'rgba(255,255,255,0.85)', fontSize: 12, fontFamily: MONO, letterSpacing: 2 },
+  heroClock: { color: CYAN, fontFamily: MONO, letterSpacing: 1 },
+  readyWrap: { ...fill, alignItems: 'center', justifyContent: 'center', gap: 18 },
+  startBtn: { width: 190, height: 190, alignItems: 'center', justifyContent: 'center' },
+  startNum: { color: '#fff', fontSize: 64, fontWeight: '200', letterSpacing: -2, textShadowColor: 'rgba(94,242,255,0.8)', textShadowRadius: 14 },
+  btnSolo: { flexGrow: 0, flexBasis: 'auto', marginTop: 18 },
+  results: { position: 'absolute', top: 0, left: 0, right: 0, borderWidth: 0 },
+  rec: { flexDirection: 'row', gap: 14, alignItems: 'flex-start', padding: 14, borderRadius: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', backgroundColor: 'rgba(255,255,255,0.03)', marginTop: 6 },
+  recFirst: { borderColor: 'rgba(94,242,255,0.5)', backgroundColor: 'rgba(94,242,255,0.07)' },
+  recGlyph: { color: 'rgba(255,255,255,0.7)', fontSize: 22, width: 26, textAlign: 'center' },
+  recTitle: { color: '#fff', fontSize: 16, fontWeight: '400' },
+  recBody: { color: 'rgba(255,255,255,0.65)', fontSize: 13, lineHeight: 18, marginTop: 2 },
   consent: { ...fill, borderWidth: 0, alignItems: 'center', justifyContent: 'center', padding: 30, gap: 14 },
   consentTitle: { fontSize: 24, fontWeight: '200', color: '#fff', textAlign: 'center', marginTop: 6 },
   consentBody: { fontSize: 14.5, color: 'rgba(255,255,255,0.75)', textAlign: 'center', lineHeight: 21 },

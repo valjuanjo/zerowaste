@@ -86,7 +86,7 @@ export function nextFrame(prev: Detection[], rand: () => number, nextUid: () => 
     y: Math.min(Math.max(d.y + (rand() - 0.5) * 0.012, 0.30), 0.82 - d.h),
     conf: Math.min(0.97, Math.max(0.55, d.conf + (rand() - 0.5) * 0.04)),
   }));
-  if (dets.length > 0 && (dets.length >= MAX_VISIBLE || rand() < 0.12)) dets.splice(Math.floor(rand() * dets.length), 1);
+  if (dets.length > 0 && (dets.length >= MAX_VISIBLE || rand() < 0.22)) dets.splice(Math.floor(rand() * dets.length), 1);
   const added: Detection[] = [];
   if (dets.length < MAX_VISIBLE && rand() < 0.6) {
     const w = 0.22 + rand() * 0.16, h = 0.12 + rand() * 0.12;
