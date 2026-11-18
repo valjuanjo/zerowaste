@@ -60,8 +60,8 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <StatusBar style="light" />
-      <SafeAreaView style={s.root} edges={screen === 'scan' ? ['bottom'] : ['top', 'bottom']}>
-        {screen === 'scan' ? <Scanner lang={lang} onToggleLang={toggleLang} /> : <>
+      <SafeAreaView style={[s.root, screen === 'scan' && { backgroundColor: '#05090c' }]} edges={screen === 'scan' ? ['bottom'] : ['top', 'bottom']}>
+        {screen === 'scan' ? <Scanner lang={lang} onToggleLang={toggleLang} bottomInset={62} /> : <>
         <View style={s.header}>
           <View>
             <Text style={s.title}>Escanea Perú</Text>
@@ -163,18 +163,18 @@ export default function App() {
         </ScrollView>
         </>}
 
-        <View style={s.nav}>
+        <View style={[s.nav, screen === 'scan' && s.navGlass]}>
           <Pressable testID="nav-scan" style={s.navBtn} onPress={() => setScreen('scan')}>
-            <Text style={s.navIcon}>♻️</Text>
-            <Text style={[s.navText, screen === 'scan' && s.navOn]}>{SCAN[lang].navScan}</Text>
+            <Text style={[s.navIcon, screen === 'scan' && s.navOnGlass]}>◎</Text>
+            <Text style={[s.navText, screen === 'scan' && s.navOnGlass]}>{SCAN[lang].navScan}</Text>
           </Pressable>
           <Pressable testID="nav-home" style={s.navBtn} onPress={() => setScreen('home')}>
-            <Text style={s.navIcon}>📍</Text>
-            <Text style={[s.navText, screen !== 'list' && screen !== 'scan' && s.navOn]}>{t.navReport}</Text>
+            <Text style={[s.navIcon, screen === 'scan' && s.navTextGlass]}>⊕</Text>
+            <Text style={[s.navText, screen === 'scan' && s.navTextGlass, screen !== 'list' && screen !== 'scan' && s.navOn]}>{t.navReport}</Text>
           </Pressable>
           <Pressable testID="nav-list" style={s.navBtn} onPress={() => setScreen('list')}>
-            <Text style={s.navIcon}>📋</Text>
-            <Text style={[s.navText, screen === 'list' && s.navOn]}>{t.navList}</Text>
+            <Text style={[s.navIcon, screen === 'scan' && s.navTextGlass]}>☰</Text>
+            <Text style={[s.navText, screen === 'scan' && s.navTextGlass, screen === 'list' && s.navOn]}>{t.navList}</Text>
           </Pressable>
         </View>
       </SafeAreaView>
@@ -224,4 +224,7 @@ const s = StyleSheet.create({
   navIcon: { fontSize: 20 },
   navText: { fontSize: 13, color: '#64706a' },
   navOn: { color: GREEN, fontWeight: '700' },
+  navGlass: { position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(5,9,12,0.45)', borderTopColor: 'rgba(255,255,255,0.12)' },
+  navTextGlass: { color: 'rgba(255,255,255,0.6)' },
+  navOnGlass: { color: '#5ef2ff', fontWeight: '700' },
 });

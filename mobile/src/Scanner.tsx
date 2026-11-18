@@ -1,7 +1,9 @@
 // Live scanner interface (plan step 0.5a, decision D-014). Camera is real; detections are simulated (src/demo.ts).
 // Salience: the screen shows only the plastic share and the mix of plastic types. Everything else is one tap away.
 import { useEffect, useRef, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Animated, Easing, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { BlurView } from 'expo-blur';
+import Svg, { Circle } from 'react-native-svg';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { CameraView, useCameraPermissions } from 'expo-camera';
@@ -15,7 +17,7 @@ const CONSENT_KEY = 'ep_scan_consent_v1';
 const TICK_MS = 800;
 const pct = (a: number, b: number) => (b ? Math.round((100 * a) / b) : 0);
 
-export default function Scanner({ lang, onToggleLang }: { lang: Lang; onToggleLang: () => void }) {
+export default function Scanner({ lang, onToggleLang, bottomInset = 0 }: { lang: Lang; onToggleLang: () => void; bottomInset?: number }) {
   const t = SCAN[lang];
   const [consent, setConsent] = useState<boolean | null>(null);
   const [moreConsent, setMoreConsent] = useState(false);
@@ -32,6 +34,14 @@ export default function Scanner({ lang, onToggleLang }: { lang: Lang; onToggleLa
   const detsRef = useRef<Detection[]>([]);
   const pausedRef = useRef(paused);
   pausedRef.current = paused;
+
+  // Scan line sweeping the view.
+  const sweep = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    const a = Animated.loop(Animated.timing(sweep, { toValue: 1, duration: 3200, easing: Easing.inOut(Easing.quad), useNativeDriver: Platform.OS !== 'web' }));
+    a.start();
+    return () => a.stop();
+  }, []);
 
   useEffect(() => {
     AsyncStorage.getItem(CONSENT_KEY).then((v) => setConsent(v === 'yes')).catch(() => setConsent(false));
@@ -79,113 +89,143 @@ export default function Scanner({ lang, onToggleLang }: { lang: Lang; onToggleLa
       {perm?.granted
         ? <CameraView style={StyleSheet.absoluteFill} facing="back" />
         : <View style={[StyleSheet.absoluteFill, s.noCam]} />}
+      <View pointerEvents="none" style={[StyleSheet.absoluteFill, s.tint]} />
 
-      {/* Detection boxes */}
+      {/* Scan line */}
+      {consent && !paused && (
+        <Animated.View pointerEvents="none" style={[s.sweep, {
+          transform: [{ translateY: sweep.interpolate({ inputRange: [0, 1], outputRange: [140, 620] }) }],
+          opacity: sweep.interpolate({ inputRange: [0, 0.1, 0.9, 1], outputRange: [0, 1, 1, 0] }),
+        }]}>
+          <View style={s.sweepGlow} /><View style={s.sweepLine} />
+        </Animated.View>
+      )}
+
+      {/* Detections: corner brackets, no fill */}
       {consent && dets.map((d) => {
         const plastic = !!d.item.resin;
-        const color = plastic ? RESIN_COLOR[d.item.resin as Resin] : '#ffffff';
+        const color = plastic ? RESIN_COLOR[d.item.resin as Resin] : 'rgba(255,255,255,0.55)';
+        const sel = picked?.uid === d.uid;
         return (
           <Pressable key={d.uid} testID={`det-${d.uid}`} onPress={() => setPicked(d)}
-            style={[s.box, { left: `${d.x * 100}%`, top: `${d.y * 100}%`, width: `${d.w * 100}%`, height: `${d.h * 100}%`,
-              borderColor: color, borderStyle: plastic ? 'solid' : 'dashed' }]}>
-            <View style={[s.tag, { backgroundColor: plastic ? color : 'rgba(255,255,255,0.85)' }]}>
-              <Text style={[s.tagText, !plastic && { color: '#333' }]}>{plastic ? d.item.resin : '—'}</Text>
+            style={[s.box, { left: `${d.x * 100}%`, top: `${d.y * 100}%`, width: `${d.w * 100}%`, height: `${d.h * 100}%` },
+              sel && { backgroundColor: 'rgba(255,255,255,0.06)' }]}>
+            {(['tl', 'tr', 'bl', 'br'] as const).map((c) => (
+              <View key={c} style={[s.corner, s[c], { borderColor: color, shadowColor: color }]} />
+            ))}
+            {plastic && <View style={[s.centerDot, { backgroundColor: color, shadowColor: color }]} />}
+            <View style={s.tag}>
+              <Text style={[s.tagText, { color }]}>
+                {plastic ? `${d.item.resin}·${RESIN_CODE[d.item.resin as Resin].padStart(2, '0')}` : '∅ ' + t.notPlastic.toUpperCase()}
+              </Text>
+              <Text style={s.tagConf}>{Math.round(d.conf * 100)}</Text>
             </View>
           </Pressable>
         );
       })}
 
       <SafeAreaView style={s.overlay} edges={['top']} pointerEvents="box-none">
-        {/* Top row: small controls */}
         <View style={s.topRow} pointerEvents="box-none">
-          <Pressable testID="pause-toggle" onPress={() => setPaused(!paused)} style={s.pill}
+          <Pressable testID="pause-toggle" onPress={() => setPaused(!paused)} style={s.chip}
             accessibilityLabel={paused ? t.resume : t.pause}>
-            <View style={[s.dot, { backgroundColor: paused ? '#b0b8b4' : '#ff4d4d' }]} />
-            <Text style={s.pillText}>{paused ? t.paused : t.counting}</Text>
-            <Text style={s.pillIcon}>{paused ? '▶' : '❚❚'}</Text>
+            <View style={[s.dot, paused ? s.dotOff : s.dotOn]} />
+            <Text style={s.chipText}>{(paused ? t.paused : t.counting).toUpperCase()}</Text>
           </Pressable>
           <View style={{ flexDirection: 'row', gap: 6 }}>
-            <Pressable testID="demo-badge" onPress={() => setDemoInfo(!demoInfo)} style={[s.pill, s.demo]}>
-              <Text style={[s.pillText, { color: '#1c2420' }]}>{t.demo} ⓘ</Text>
+            <Pressable testID="demo-badge" onPress={() => setDemoInfo(!demoInfo)} style={[s.chip, s.chipDemo]}>
+              <Text style={[s.chipText, { color: AMBER }]}>{t.demo}</Text>
             </Pressable>
-            <Pressable testID="lang-toggle" onPress={onToggleLang} style={s.pill} accessibilityLabel="Change language / Cambiar idioma">
-              <Text style={s.pillText}>{lang === 'en' ? 'ES' : 'EN'}</Text>
+            <Pressable testID="lang-toggle" onPress={onToggleLang} style={s.chip} accessibilityLabel="Change language / Cambiar idioma">
+              <Text style={s.chipText}>{lang === 'en' ? 'ES' : 'EN'}</Text>
             </Pressable>
           </View>
         </View>
-        {demoInfo && <Pressable onPress={() => setDemoInfo(false)} style={s.infoBox}><Text style={s.infoText}>{t.demoInfo}</Text></Pressable>}
+        {demoInfo && (
+          <Pressable onPress={() => setDemoInfo(false)}>
+            <Glass style={s.infoBox}><Text style={s.infoText}>{t.demoInfo}</Text></Glass>
+          </Pressable>
+        )}
 
-        {/* The one big number */}
+        {/* The one big number, inside a ring */}
         <Pressable testID="scan-percent" onPress={() => setSheet(true)} style={s.hero}>
-          <Text style={s.heroNum}>{share}<Text style={s.heroPct}>%</Text></Text>
-          <Text style={s.heroLabel}>{t.plastic}</Text>
+          <Ring value={share / 100} />
+          <View style={s.heroInner}>
+            <Text style={s.heroNum}>{share}<Text style={s.heroPct}>%</Text></Text>
+            <Text style={s.heroLabel}>{t.plastic.toUpperCase()}</Text>
+          </View>
           <Text style={s.heroSub}>{tally.total ? t.ofItems(tally.total) : t.pointCamera}</Text>
         </Pressable>
         {!perm?.granted && perm && (
-          <View style={s.camMsg}>
+          <Glass style={s.infoBox}>
             <Text style={s.infoText}>{t.noCamera}</Text>
-            {perm.canAskAgain && <Pressable onPress={requestPerm}><Text style={s.link}>{t.allowCamera}</Text></Pressable>}
-          </View>
+            {perm.canAskAgain && <Pressable onPress={requestPerm}><Text style={s.link}>{t.allowCamera.toUpperCase()} →</Text></Pressable>}
+          </Glass>
         )}
       </SafeAreaView>
 
-      {/* Bottom: mix of plastic types, one tap for details */}
-      <View style={s.bottom} pointerEvents="box-none">
+      {/* Bottom: mix of plastic types, or the picked item */}
+      <View style={[s.bottom, { bottom: bottomInset }]} pointerEvents="box-none">
         {picked ? (
-          <Pressable testID="item-card" onPress={() => setPicked(null)} style={s.card}>
-            <Text style={s.cardIcon}>{CATEGORY_ICON[picked.item.category]}</Text>
-            <View style={{ flex: 1 }}>
-              <Text style={s.cardTitle}>{t.itemNames[picked.item.key]}</Text>
-              <Text style={s.cardSub}>
-                {picked.item.resin ? `${t.plastic} · ${picked.item.resin} (${RESIN_CODE[picked.item.resin]})` : t.notPlastic}
-                {'  ·  '}{Math.round(picked.conf * 100)}% {t.confidence}
-              </Text>
-            </View>
-            <Text style={s.cardClose}>✕</Text>
+          <Pressable testID="item-card" onPress={() => setPicked(null)}>
+            <Glass style={s.card}>
+              <View style={[s.cardStripe, { backgroundColor: picked.item.resin ? RESIN_COLOR[picked.item.resin] : 'rgba(255,255,255,0.4)' }]} />
+              <View style={{ flex: 1 }}>
+                <Text style={s.cardKicker}>{t.categories[picked.item.category].toUpperCase()}</Text>
+                <Text style={s.cardTitle}>{t.itemNames[picked.item.key]}</Text>
+                <Text style={s.cardSub}>
+                  {picked.item.resin ? `${picked.item.resin} · ${RESIN_CODE[picked.item.resin]}` : t.notPlastic}
+                  {'   '}{Math.round(picked.conf * 100)}% {t.confidence}
+                </Text>
+              </View>
+              <Text style={s.cardClose}>✕</Text>
+            </Glass>
           </Pressable>
         ) : (
-          <Pressable testID="scan-sheet-open" onPress={() => setSheet(true)} style={s.mix}>
-            <View style={s.bar}>
-              {resins.length === 0 && <View style={{ flex: 1, backgroundColor: 'rgba(255,255,255,0.25)' }} />}
-              {resins.map((r) => <View key={r} style={{ flex: tally.byResin[r], backgroundColor: RESIN_COLOR[r] }} />)}
-            </View>
-            <View style={s.mixRow}>
-              {resins.slice(0, 3).map((r) => (
-                <Text key={r} style={s.mixText}>
-                  <Text style={{ color: RESIN_COLOR[r] }}>● </Text>{r} {pct(tally.byResin[r], tally.plastic)}%
-                </Text>
-              ))}
-              <Text style={[s.mixText, { marginLeft: 'auto', opacity: 0.8 }]}>⌃</Text>
-            </View>
+          <Pressable testID="scan-sheet-open" onPress={() => setSheet(true)}>
+            <Glass style={s.mix}>
+              <View style={s.bar}>
+                {resins.length === 0 && <View style={{ flex: 1, backgroundColor: 'rgba(255,255,255,0.15)' }} />}
+                {resins.map((r) => <View key={r} style={[s.barSeg, { flex: tally.byResin[r], backgroundColor: RESIN_COLOR[r], shadowColor: RESIN_COLOR[r] }]} />)}
+              </View>
+              <View style={s.mixRow}>
+                {resins.slice(0, 3).map((r) => (
+                  <Text key={r} style={s.mixText}>
+                    <Text style={{ color: RESIN_COLOR[r] }}>{r}</Text> {pct(tally.byResin[r], tally.plastic)}%
+                  </Text>
+                ))}
+                <Text style={[s.mixText, { marginLeft: 'auto', color: CYAN }]}>⌃</Text>
+              </View>
+            </Glass>
           </Pressable>
         )}
       </View>
 
-      {/* Details sheet */}
+      {/* Details sheet: frosted glass over the live camera */}
       {sheet && (
         <View style={s.sheetWrap}>
           <Pressable style={StyleSheet.absoluteFill} onPress={() => setSheet(false)} />
-          <View testID="sheet" style={s.sheet}>
-            <ScrollView contentContainerStyle={{ padding: 18, gap: 6 }}>
-              <Text style={s.sheetHead}>{share}% {t.plastic}</Text>
+          <Glass testID="sheet" style={[s.sheet, { marginBottom: bottomInset }]} strong>
+            <View style={s.grabber} />
+            <ScrollView contentContainerStyle={{ padding: 20, paddingTop: 8, gap: 6 }}>
+              <Text style={s.sheetHead}>{share}<Text style={s.sheetHeadPct}>% {t.plastic}</Text></Text>
               <Text style={s.muted}>{t.ofItems(tally.total)}</Text>
 
-              <Text style={s.section}>{t.types}</Text>
+              <Text style={s.section}>{t.types.toUpperCase()}</Text>
               {resins.map((r) => (
                 <View key={r} style={s.line}>
-                  <Text style={s.lineName}>{r} <Text style={s.muted}>({RESIN_CODE[r]})</Text></Text>
-                  <View style={s.track}><View style={{ width: `${pct(tally.byResin[r], tally.plastic)}%`, height: '100%', backgroundColor: RESIN_COLOR[r], borderRadius: 4 }} /></View>
+                  <Text style={[s.code, { color: RESIN_COLOR[r] }]}>{r}</Text>
+                  <View style={s.track}><View style={[s.fill, { width: `${pct(tally.byResin[r], tally.plastic)}%`, backgroundColor: RESIN_COLOR[r], shadowColor: RESIN_COLOR[r] }]} /></View>
                   <Text style={s.lineVal}>{pct(tally.byResin[r], tally.plastic)}%</Text>
                 </View>
               ))}
               <Text style={s.fine}>{t.resinNote}</Text>
 
-              <Text style={s.section}>{t.byCategory}</Text>
+              <Text style={s.section}>{t.byCategory.toUpperCase()}</Text>
               {cats.map((c) => {
                 const v = tally.byCategory[c];
                 return (
-                  <View key={c} testID={`cat-${c}`} style={s.line}>
-                    <Text style={s.lineName}>{CATEGORY_ICON[c]} {t.categories[c]}</Text>
+                  <View key={c} testID={`cat-${c}`} style={[s.line, s.catLine]}>
+                    <Text style={[s.lineName, v.plastic === 0 && { opacity: 0.5 }]}>{t.categories[c]}</Text>
                     <Text style={[s.lineVal, { width: 'auto' }, v.plastic === 0 && s.muted]}>
                       {v.plastic ? t.plasticOf(v.plastic, v.n) : `${t.items(v.n)} · ${t.notPlastic.toLowerCase()}`}
                     </Text>
@@ -193,89 +233,138 @@ export default function Scanner({ lang, onToggleLang }: { lang: Lang; onToggleLa
                 );
               })}
 
-              <View style={{ flexDirection: 'row', gap: 10, marginTop: 14 }}>
+              <View style={{ flexDirection: 'row', gap: 10, marginTop: 16 }}>
                 <Pressable testID="new-room" onPress={() => { setTally(emptyTally()); setSheet(false); }} style={[s.btn, s.btnGhost]}>
-                  <Text style={s.btnGhostText}>{t.newRoom}</Text>
+                  <Text style={s.btnText}>{t.newRoom.toUpperCase()}</Text>
                 </Pressable>
                 <Pressable testID="sheet-close" onPress={() => setSheet(false)} style={[s.btn, s.btnPrimary]}>
-                  <Text style={s.btnPrimaryText}>{t.close}</Text>
+                  <Text style={[s.btnText, { color: CYAN }]}>{t.close.toUpperCase()}</Text>
                 </Pressable>
               </View>
-              <Text style={s.fine}>{t.demoInfo}</Text>
+              <Text style={[s.fine, { color: AMBER, opacity: 0.8 }]}>{t.demoInfo}</Text>
             </ScrollView>
-          </View>
+          </Glass>
         </View>
       )}
 
-      {/* First open: consent before the camera starts (governance rule 1a) */}
+      {/* First open: consent before counting starts (governance rule 1a) */}
       {consent === false && (
-        <View style={s.consent}>
-          <Text style={{ fontSize: 44 }}>♻️</Text>
+        <Glass style={s.consent} strong>
+          <View style={{ width: 120, height: 120 }}><Ring value={0.68} size={120} /></View>
           <Text style={s.consentTitle}>{t.consentTitle}</Text>
           <Text style={s.consentBody}>{t.consentBody}</Text>
           <Pressable onPress={() => setMoreConsent(!moreConsent)}>
-            <Text style={s.link}>{t.consentMore} {moreConsent ? '⌃' : '⌄'}</Text>
+            <Text style={s.link}>{t.consentMore.toUpperCase()} {moreConsent ? '⌃' : '⌄'}</Text>
           </Pressable>
-          {moreConsent && <Text style={[s.consentBody, { fontSize: 13 }]}>{t.consentMoreBody}</Text>}
-          <Pressable testID="consent-start" onPress={accept} style={[s.btn, s.btnPrimary, { alignSelf: 'stretch', flex: 0 }]}>
-            <Text style={s.btnPrimaryText}>{t.start}</Text>
+          {moreConsent && <Text style={[s.consentBody, { fontSize: 13, opacity: 0.75 }]}>{t.consentMoreBody}</Text>}
+          <Pressable testID="consent-start" onPress={accept} style={[s.btn, s.btnPrimary, { alignSelf: 'stretch', flexGrow: 0, flexBasis: 'auto', marginTop: 8 }]}>
+            <Text style={[s.btnText, { color: CYAN }]}>{t.start.toUpperCase()}</Text>
           </Pressable>
-        </View>
+        </Glass>
       )}
     </View>
   );
 }
 
-const GREEN = '#1f7a4d';
-const glass = 'rgba(12,18,15,0.55)';
+/** Frosted, see-through panel with a hairline edge. */
+function Glass({ children, style, strong, testID }: { children: React.ReactNode; style?: any; strong?: boolean; testID?: string }) {
+  return (
+    <View testID={testID} style={[s.glass, style]}>
+      <BlurView intensity={strong ? 45 : 25} tint="dark" experimentalBlurMethod="dimezisBlurView" style={StyleSheet.absoluteFill} />
+      <View style={[StyleSheet.absoluteFill, { backgroundColor: strong ? 'rgba(6,12,18,0.45)' : 'rgba(6,12,18,0.22)' }]} />
+      {children}
+    </View>
+  );
+}
+
+/** Thin progress ring with a faint full track. */
+function Ring({ value, size = 150 }: { value: number; size?: number }) {
+  const r = size / 2 - 4, c = 2 * Math.PI * r;
+  return (
+    <Svg width={size} height={size} style={{ position: 'absolute', top: 0 }}>
+      <Circle cx={size / 2} cy={size / 2} r={r} stroke="rgba(255,255,255,0.14)" strokeWidth={1} fill="rgba(4,10,14,0.28)" />
+      <Circle cx={size / 2} cy={size / 2} r={r - 6} stroke="rgba(94,242,255,0.18)" strokeWidth={1} strokeDasharray="2 6" fill="none" />
+      <Circle cx={size / 2} cy={size / 2} r={r} stroke={CYAN} strokeWidth={2.5} fill="none" strokeLinecap="round"
+        strokeDasharray={`${c * Math.max(value, 0.001)} ${c}`} transform={`rotate(-90 ${size / 2} ${size / 2})`} />
+    </Svg>
+  );
+}
+
+const CYAN = '#5ef2ff';
+const AMBER = '#ffc95c';
+const MONO = Platform.select({ ios: 'Menlo', android: 'monospace', default: 'ui-monospace, Menlo, monospace' });
+const HAIR = 'rgba(255,255,255,0.18)';
+const glow = (radius: number) => ({ shadowOpacity: 0.9, shadowRadius: radius, shadowOffset: { width: 0, height: 0 } });
+const halo = { textShadowColor: 'rgba(0,0,0,0.75)', textShadowRadius: 6, textShadowOffset: { width: 0, height: 0 } };
+const fill = { position: 'absolute' as const, top: 0, left: 0, right: 0, bottom: 0 };
+
 const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#0c120f', overflow: 'hidden' },
-  noCam: { backgroundColor: '#26302b' },
+  root: { flex: 1, backgroundColor: '#05090c', overflow: 'hidden' },
+  noCam: { backgroundColor: '#0b1419' },
+  tint: { backgroundColor: 'rgba(0,20,30,0.18)' },
+  sweep: { position: 'absolute', left: 0, right: 0, top: 0, height: 40 },
+  sweepGlow: { position: 'absolute', left: 0, right: 0, top: 0, height: 39, backgroundColor: 'rgba(94,242,255,0.05)' },
+  sweepLine: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 1, backgroundColor: 'rgba(94,242,255,0.7)', shadowColor: CYAN, ...glow(8) },
   overlay: { position: 'absolute', top: 0, left: 0, right: 0, paddingHorizontal: 14 },
   topRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: 8 },
-  pill: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: glass, borderRadius: 16, paddingHorizontal: 11, paddingVertical: 7 },
-  pillText: { color: '#fff', fontSize: 13, fontWeight: '700' },
-  pillIcon: { color: '#fff', fontSize: 10, opacity: 0.8 },
-  dot: { width: 8, height: 8, borderRadius: 4 },
-  demo: { backgroundColor: '#ffd35c' },
-  infoBox: { backgroundColor: 'rgba(255,255,255,0.92)', borderRadius: 12, padding: 10, marginTop: 8 },
-  infoText: { color: '#1c2420', fontSize: 13, lineHeight: 18 },
-  hero: { alignSelf: 'center', alignItems: 'center', backgroundColor: glass, borderRadius: 22, paddingHorizontal: 22, paddingVertical: 8, marginTop: 10 },
-  heroNum: { color: '#fff', fontSize: 52, fontWeight: '800', lineHeight: 58 },
-  heroPct: { fontSize: 26, fontWeight: '700' },
-  heroLabel: { color: '#fff', fontSize: 15, fontWeight: '700', marginTop: -4 },
-  heroSub: { color: '#d7eadf', fontSize: 11, marginTop: 2 },
-  camMsg: { backgroundColor: 'rgba(255,255,255,0.92)', borderRadius: 12, padding: 10, marginTop: 10, gap: 4 },
-  link: { color: GREEN, fontWeight: '700', fontSize: 14 },
-  box: { position: 'absolute', borderWidth: 2.5, borderRadius: 10 },
-  tag: { position: 'absolute', top: -11, left: 8, borderRadius: 8, paddingHorizontal: 7, paddingVertical: 2 },
-  tagText: { color: '#fff', fontSize: 11, fontWeight: '800' },
-  bottom: { position: 'absolute', left: 0, right: 0, bottom: 0, padding: 14 },
-  mix: { backgroundColor: glass, borderRadius: 16, padding: 12, gap: 8 },
-  bar: { flexDirection: 'row', height: 8, borderRadius: 4, overflow: 'hidden', gap: 2 },
-  mixRow: { flexDirection: 'row', gap: 12, alignItems: 'center' },
-  mixText: { color: '#fff', fontSize: 13, fontWeight: '600' },
-  card: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: '#fff', borderRadius: 16, padding: 12 },
-  cardIcon: { fontSize: 30 },
-  cardTitle: { fontSize: 16, fontWeight: '700', color: '#1c2420' },
-  cardSub: { fontSize: 13, color: '#64706a', marginTop: 2 },
-  cardClose: { color: '#9aa39e', fontSize: 16, padding: 4 },
-  sheetWrap: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.35)', justifyContent: 'flex-end' },
-  sheet: { backgroundColor: '#fff', borderTopLeftRadius: 22, borderTopRightRadius: 22, maxHeight: '78%' },
-  sheetHead: { fontSize: 26, fontWeight: '800', color: '#1c2420' },
-  section: { fontSize: 13, fontWeight: '700', color: '#64706a', textTransform: 'uppercase', marginTop: 16, letterSpacing: 0.5 },
-  line: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 5 },
-  lineName: { fontSize: 15, color: '#1c2420', flex: 1 },
-  track: { flex: 1.3, height: 8, backgroundColor: '#eef1ec', borderRadius: 4 },
-  lineVal: { fontSize: 14, color: '#1c2420', fontWeight: '700', width: 42, textAlign: 'right' },
-  muted: { color: '#64706a', fontSize: 13, fontWeight: '400' },
-  fine: { color: '#8a948f', fontSize: 11, lineHeight: 15, marginTop: 4 },
-  btn: { flex: 1, padding: 14, borderRadius: 12, alignItems: 'center' },
-  btnPrimary: { backgroundColor: GREEN },
-  btnPrimaryText: { color: '#fff', fontSize: 16, fontWeight: '700' },
-  btnGhost: { backgroundColor: '#fff', borderWidth: 1, borderColor: '#dde3dc' },
-  btnGhostText: { color: '#1c2420', fontSize: 16, fontWeight: '600' },
-  consent: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: '#f3f5f1', alignItems: 'center', justifyContent: 'center', padding: 28, gap: 14 },
-  consentTitle: { fontSize: 22, fontWeight: '800', color: '#1c2420', textAlign: 'center' },
-  consentBody: { fontSize: 15, color: '#3c4842', textAlign: 'center', lineHeight: 21 },
+  chip: { flexDirection: 'row', alignItems: 'center', gap: 7, borderWidth: 1, borderColor: HAIR, backgroundColor: 'rgba(4,10,14,0.32)', borderRadius: 20, paddingHorizontal: 12, paddingVertical: 7 },
+  chipDemo: { borderColor: 'rgba(255,201,92,0.55)' },
+  chipText: { color: 'rgba(255,255,255,0.9)', fontSize: 11, fontFamily: MONO, letterSpacing: 1.5 },
+  dot: { width: 7, height: 7, borderRadius: 4 },
+  dotOn: { backgroundColor: '#ff4d6d', shadowColor: '#ff4d6d', ...glow(6) },
+  dotOff: { backgroundColor: 'rgba(255,255,255,0.35)' },
+  glass: { overflow: 'hidden', borderWidth: 1, borderColor: HAIR },
+  infoBox: { borderRadius: 14, padding: 12, marginTop: 10, gap: 6 },
+  infoText: { color: 'rgba(255,255,255,0.85)', fontSize: 12.5, lineHeight: 18 },
+  link: { color: CYAN, fontFamily: MONO, fontSize: 12, letterSpacing: 1.5 },
+  hero: { alignSelf: 'center', alignItems: 'center', width: 150, marginTop: 14 },
+  heroInner: { width: 150, height: 150, alignItems: 'center', justifyContent: 'center' },
+  heroNum: { color: '#fff', fontSize: 54, fontWeight: '200', letterSpacing: -2, textShadowColor: 'rgba(94,242,255,0.8)', textShadowRadius: 14 },
+  heroPct: { fontSize: 22, fontWeight: '300', color: CYAN },
+  heroLabel: { ...halo, color: CYAN, fontSize: 10, fontFamily: MONO, letterSpacing: 4, marginTop: -2 },
+  heroSub: { ...halo, color: 'rgba(255,255,255,0.85)', fontSize: 11, marginTop: 6, textAlign: 'center', width: 240 },
+  box: { position: 'absolute' },
+  corner: { position: 'absolute', width: 16, height: 16, ...glow(6) },
+  tl: { top: 0, left: 0, borderTopWidth: 2, borderLeftWidth: 2, borderTopLeftRadius: 6 },
+  tr: { top: 0, right: 0, borderTopWidth: 2, borderRightWidth: 2, borderTopRightRadius: 6 },
+  bl: { bottom: 0, left: 0, borderBottomWidth: 2, borderLeftWidth: 2, borderBottomLeftRadius: 6 },
+  br: { bottom: 0, right: 0, borderBottomWidth: 2, borderRightWidth: 2, borderBottomRightRadius: 6 },
+  centerDot: { position: 'absolute', left: '50%', top: '50%', width: 5, height: 5, borderRadius: 3, marginLeft: -2.5, marginTop: -2.5, ...glow(6) },
+  tag: { position: 'absolute', top: -20, left: 0, flexDirection: 'row', gap: 6, alignItems: 'baseline' },
+  tagText: { ...halo, fontFamily: MONO, fontSize: 11, fontWeight: '700', letterSpacing: 1 },
+  tagConf: { ...halo, fontFamily: MONO, fontSize: 9, color: 'rgba(255,255,255,0.75)' },
+  bottom: { position: 'absolute', left: 0, right: 0, padding: 14 },
+  mix: { borderRadius: 18, padding: 14, gap: 10 },
+  bar: { flexDirection: 'row', height: 3, gap: 3 },
+  barSeg: { borderRadius: 2, ...glow(5) },
+  mixRow: { flexDirection: 'row', gap: 14, alignItems: 'center' },
+  mixText: { color: 'rgba(255,255,255,0.8)', fontSize: 12, fontFamily: MONO, letterSpacing: 1 },
+  card: { flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 18, padding: 14 },
+  cardStripe: { width: 3, alignSelf: 'stretch', borderRadius: 2 },
+  cardKicker: { color: 'rgba(255,255,255,0.5)', fontSize: 10, fontFamily: MONO, letterSpacing: 2 },
+  cardTitle: { fontSize: 18, fontWeight: '300', color: '#fff', marginTop: 2 },
+  cardSub: { fontSize: 12, color: CYAN, marginTop: 3, fontFamily: MONO },
+  cardClose: { color: 'rgba(255,255,255,0.5)', fontSize: 14, padding: 4 },
+  sheetWrap: { ...fill, backgroundColor: 'rgba(0,0,0,0.15)', justifyContent: 'flex-end', padding: 10 },
+  sheet: { borderRadius: 26, maxHeight: '76%' },
+  grabber: { alignSelf: 'center', width: 36, height: 3, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.3)', marginTop: 10 },
+  sheetHead: { fontSize: 44, fontWeight: '200', color: '#fff', letterSpacing: -1 },
+  sheetHeadPct: { fontSize: 18, fontWeight: '300', color: CYAN, letterSpacing: 0 },
+  section: { fontSize: 10, color: 'rgba(255,255,255,0.5)', fontFamily: MONO, letterSpacing: 2.5, marginTop: 18, marginBottom: 2 },
+  line: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 6 },
+  catLine: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: 'rgba(255,255,255,0.1)' },
+  code: { fontFamily: MONO, fontSize: 13, width: 52, letterSpacing: 1 },
+  lineName: { fontSize: 15, color: '#fff', flex: 1, fontWeight: '300' },
+  track: { flex: 1, height: 2, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 1 },
+  fill: { height: '100%', borderRadius: 1, ...glow(5) },
+  lineVal: { fontSize: 13, color: '#fff', fontFamily: MONO, width: 44, textAlign: 'right' },
+  muted: { color: 'rgba(255,255,255,0.5)', fontSize: 12.5 },
+  fine: { color: 'rgba(255,255,255,0.4)', fontSize: 11, lineHeight: 15, marginTop: 6 },
+  btn: { flex: 1, paddingVertical: 14, borderRadius: 14, alignItems: 'center', borderWidth: 1 },
+  btnPrimary: { borderColor: 'rgba(94,242,255,0.6)', backgroundColor: 'rgba(94,242,255,0.08)' },
+  btnGhost: { borderColor: HAIR, backgroundColor: 'rgba(255,255,255,0.03)' },
+  btnText: { color: 'rgba(255,255,255,0.85)', fontSize: 12, fontFamily: MONO, letterSpacing: 2 },
+  consent: { ...fill, borderWidth: 0, alignItems: 'center', justifyContent: 'center', padding: 30, gap: 14 },
+  consentTitle: { fontSize: 24, fontWeight: '200', color: '#fff', textAlign: 'center', marginTop: 6 },
+  consentBody: { fontSize: 14.5, color: 'rgba(255,255,255,0.75)', textAlign: 'center', lineHeight: 21 },
 });

@@ -90,7 +90,7 @@ type ScanStrings = {
 
 export const SCAN: Record<Lang, ScanStrings> = {
   en: {
-    plastic: 'plastic', ofItems: (n) => `of ${n} items in this room`, demo: 'DEMO',
+    plastic: 'plastic', ofItems: (n) => `of ${n} item${n === 1 ? '' : 's'} in this room`, demo: 'DEMO',
     demoInfo: 'Demo: the items and numbers are invented to test the screen. The plastic model is not trained yet.',
     counting: 'Counting', paused: 'Paused', pause: 'Pause', resume: 'Resume',
     pointCamera: 'Point the camera around the room',
@@ -108,7 +108,7 @@ export const SCAN: Record<Lang, ScanStrings> = {
     itemNames: { water_bottle: 'Water bottle', soda_bottle: 'Soda bottle', shampoo_bottle: 'Shampoo bottle', carrier_bag: 'Carrier bag', bread_bag: 'Bread bag', snack_wrapper: 'Snack wrapper', food_tray: 'Food tray', yogurt_cup: 'Yogurt cup', takeaway_box: 'Takeaway box', bottle_cap: 'Bottle cap', foam_cup: 'Foam cup', foam_box: 'Foam food box', can: 'Can', glass_jar: 'Glass jar', carton: 'Milk carton', newspaper: 'Newspaper' },
   },
   es: {
-    plastic: 'plástico', ofItems: (n) => `de ${n} objetos en este ambiente`, demo: 'DEMO',
+    plastic: 'plástico', ofItems: (n) => `de ${n} objeto${n === 1 ? '' : 's'} en este ambiente`, demo: 'DEMO',
     demoInfo: 'Demo: los objetos y números son inventados para probar la pantalla. El modelo de plástico aún no está entrenado.',
     counting: 'Contando', paused: 'En pausa', pause: 'Pausar', resume: 'Seguir',
     pointCamera: 'Apunta la cámara por el ambiente',

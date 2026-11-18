@@ -35,7 +35,7 @@ export const CATEGORY_ICON: Record<Category, string> = {
 export const RESIN_ORDER: Resin[] = ['PET', 'HDPE', 'LDPE', 'PP', 'PS', 'OTHER'];
 export const RESIN_CODE: Record<Resin, string> = { PET: '1', HDPE: '2', LDPE: '4', PP: '5', PS: '6', OTHER: '7' };
 export const RESIN_COLOR: Record<Resin, string> = {
-  PET: '#3fa9f5', HDPE: '#8e6cf0', LDPE: '#f5a623', PP: '#2ec4a6', PS: '#ef5b5b', OTHER: '#b0b8b4',
+  PET: '#5ef2ff', HDPE: '#b39cff', LDPE: '#ffd166', PP: '#4dffb8', PS: '#ff6b9a', OTHER: '#c7d2d9',
 };
 
 export type Detection = {

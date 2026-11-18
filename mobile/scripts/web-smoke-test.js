@@ -36,9 +36,9 @@ const server = http.createServer((req, res) => {
   // Scanner (simulated detections, D-014): consent first, then counting, pause, details sheet, new room.
   await id('consent-start').click();
   await id('det-1').waitFor({ timeout: 10000 });
-  await page.waitForFunction(() => /of \d+ items/.test(document.querySelector('[data-testid="scan-percent"]').textContent), null, { timeout: 15000 });
-  const items = async () => Number((await id('scan-percent').textContent()).match(/of (\d+) items/)[1]);
-  assert.match(await id('scan-percent').textContent(), /^\d+%plastic/);
+  await page.waitForFunction(() => /of \d+ items?/.test(document.querySelector('[data-testid="scan-percent"]').textContent), null, { timeout: 15000 });
+  const items = async () => Number((await id('scan-percent').textContent()).match(/of (\d+) items?/)[1]);
+  assert.match(await id('scan-percent').textContent(), /^\d+%plastic/i);
   await page.waitForTimeout(4000);
   if (process.argv[3]) await page.screenshot({ path: process.argv[3].replace(/\.png$/, '-scan.png') });
   await id('pause-toggle').click();
@@ -49,12 +49,12 @@ const server = http.createServer((req, res) => {
   await id('scan-sheet-open').click({ force: true });
   await id('sheet').waitFor();
   const sheet = await id('sheet').textContent();
-  assert.match(sheet, /Types of plastic/); assert.match(sheet, /Objects by category/); assert.match(sheet, /Demo/);
+  assert.match(sheet, /Types of plastic/i); assert.match(sheet, /Objects by category/i); assert.match(sheet, /Demo/);
   if (process.argv[3]) await page.screenshot({ path: process.argv[3].replace(/\.png$/, '-sheet.png') });
   await id('new-room').click();
   assert.match(await id('scan-percent').textContent(), /^0%/);
   await id('lang-toggle').click();
-  assert.match(await id('scan-percent').textContent(), /plástico/);
+  assert.match(await id('scan-percent').textContent(), /plástico/i);
   await id('lang-toggle').click();
   await page.reload(); // consent is remembered
   await id('scan-percent').waitFor();

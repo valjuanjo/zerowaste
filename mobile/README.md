@@ -5,6 +5,8 @@ Three tabs:
 
 - **Scan** (step 0.5a, decision D-014) — live camera with **simulated** plastic detections, to test the interface
   before the model is trained. The screen shows only the plastic share in the room and the mix of plastic types.
+  Visual style: see-through — frosted glass panels, thin glowing corner brackets, a ring around the main number,
+  a sweeping scan line.
   Tap the number or the bar for details (types of plastic, objects by category); tap a box for that item.
   First open asks for consent; the "Counting" pill pauses counting; "New room" in the details restarts.
 - **Report** — the separate dump-point flow: real photo → GPS → choose litter type → send.
